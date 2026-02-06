@@ -1,0 +1,689 @@
+<template>
+    <div class="aoi font-inter h-screen flex flex-col overflow-hidden">
+        <div class="flex flex-col space-y-4 h-full overflow-y-auto p-4">
+            <div class="w-full bg-base-300 p-4 rounded-lg shadow mb-4 summary-card">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex gap-4">
+                        <span class="font-semibold">{{$t('Filters')}}:</span>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div v-if="activeFilters.includes('floor')">
+                                <select v-model="filters.floor" @change="onFloorChange"
+                                    class="select select-bordered select-sm">
+                                    <option value="">All Floor</option>
+                                    <option v-for="floor in floors" :key="floor">{{ floor }}</option>
+                                </select>
+                            </div>
+
+                            <div v-if="activeFilters.includes('date')" class="flex items-center gap-2">
+                                <input type="datetime-local" v-model="filters.dateFrom"
+                                    class="input input-bordered input-sm" />
+                                <span class="strip">-</span>
+                                <input type="datetime-local" v-model="filters.dateUntil"
+                                    class="input input-bordered input-sm" />
+                                <button @click="onApply" class="btn btn-sm btn-accent">{{$t('Apply')}}</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div @change="handleShiftChange" class="radio-buttons-container flex items-center gap-4 mt-4">
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio0" class="radio-button__input" type="radio" value=""
+                                v-model="selectedShift">
+                            <label for="radio0" class="radio-button__label">All</label>
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio1" class="radio-button__input" type="radio" value="day"
+                                v-model="selectedShift">
+                            <label for="radio1" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Day Shift')}}
+                            </label>
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio2" class="radio-button__input" type="radio"
+                                value="middle" v-model="selectedShift">
+                            <label for="radio2" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Middle Shift')}}
+                            </label>
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio3" class="radio-button__input" type="radio" value="night"
+                                v-model="selectedShift">
+                            <label for="radio3" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Night Shift')}}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs tabs-border">
+                <input type="radio" name="my_tabs_2" class="tab" v-model="selectedTab" :aria-label="$t('All Info')"
+                    value="all" />
+                
+                <div class="tab-content bg-transparent p-4 overflow-hidden rounded-lg" v-if="selectedTab==='all'">
+                    <div class="card bg-base-300 h-full p-4 summary-card">
+                        <div class="overflow-x-auto flex">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>{{$t('Floor')}}</th>
+                                        <th v-if="columnsVisibility.line">{{$t('Line')}}</th>
+                                        <th v-if="columnsVisibility.model">Model</th>
+                                        <th v-if="columnsVisibility.pass">PASS</th>
+                                        <th v-if="columnsVisibility.fail">FAIL</th>
+                                        <th v-if="columnsVisibility.total">{{$t('Total')}}</th>
+                                        <th v-if="columnsVisibility.yieldRate">Yield Rate (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody v-if="allData.length > 0">
+                                    <tr v-for="(item) in allData" :key="`${item.floor}-${item.line}`">
+                                        <th>{{ item.floor }}</th>
+                                        <td v-if="columnsVisibility.line">{{ item.line }}</td>
+                                        <td v-if="columnsVisibility.model">{{ item.model }}</td>
+                                        <td v-if="columnsVisibility.pass">{{ item.pass }}</td>
+                                        <td v-if="columnsVisibility.fail">
+                                            <button @click="handleFailClick(item.floor, item.line)" 
+                                                    :class="item.fail > 0 ? 'text-error underline font-bold' : 'text-gray-500 cursor-default'"
+                                                    :disabled="item.fail === 0">
+                                                {{ item.fail }}
+                                            </button>
+                                        </td>
+                                        <td v-if="columnsVisibility.total">{{ item.total }}</td>
+                                        <td v-if="columnsVisibility.yieldRate"
+                                            v-html="getBadgeColor(item.yieldRate)" />
+                                    </tr>
+                                </tbody>
+                                <tbody v-else>
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-white opacity-50">
+                                            No production data available for this range.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="radio" name="my_tabs_2" class="tab" :aria-label="$t('Analytics')" v-model="selectedTab"
+                    value="analytics" @click="onApply" />
+                <div class="tab-content bg-transparent p-4 overflow-hidden rounded-lg" v-if="selectedTab === 'analytics'">
+                     <div class="grid grid-flow-row-dense grid-cols-6 auto-rows-fr gap-4">
+                        <div class="col-span-2 card bg-base-300 shadow-xl h-96 p-4 summary-card">
+                            <v-chart :option="chartOptionsLine" autoresize class="w-full h-full" />
+                        </div>
+                        <div class="col-span-2 card bg-base-300 shadow-xl h-96 p-4 summary-card">
+                            <v-chart :option="chartOptionsGauge" autoresize class="w-full h-full" />
+                        </div>
+                        <div class="col-span-2 card bg-base-300 shadow-xl h-96 p-4 summary-card">
+                            <v-chart :option="chartOptionsPie" autoresize class="w-full h-full" />
+                        </div>
+                         <div class="col-span-6 card bg-base-300 shadow-xl h-96 p-4 summary-card">
+                            <v-chart :option="chartOptionsDynamic" :key="chartOptionsDynamicKey" autoresize class="w-full h-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <input v-if="showDetails" type="radio" name="my_tabs_2" class="tab"
+                    :aria-label="$t('Details of', {line : selectedLine})" v-model="selectedTab" value="details" />
+                
+                <div v-if="showDetails && selectedTab === 'details'" class="tab-content bg-transparent p-4 overflow-hidden rounded-lg">
+                    <div class="grid xl:grid-cols-4 lg:grid-cols-5 md:grid-cols-5 gap-4">
+                        
+                        <div class="xl:col-span-2 lg:col-span-2 md:col-span-2 bg-base-300 p-4 rounded-lg h-[80vh] overflow-y-auto">
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div class="bg-base-100 p-2 rounded text-xs">
+                                    <div class="opacity-60">Line</div>
+                                    <div class="font-bold text-lg">{{ selectedLine }}</div>
+                                </div>
+                                <div class="bg-base-100 p-2 rounded text-xs">
+                                    <div class="opacity-60">Fail Total</div>
+                                    <div class="font-bold text-lg text-error">{{ detailResult?.fail }}</div>
+                                </div>
+                            </div>
+
+                            <table class="table w-full table-xs">
+                                <thead class="bg-base-100 sticky top-0 z-10">
+                                    <tr>
+                                        <th>#</th>
+                                        <th @click="sortBy('sn')" class="cursor-pointer hover:text-accent">SN</th>
+                                        <th @click="sortBy('result')" class="cursor-pointer hover:text-accent">Result</th>
+                                        <th @click="sortBy('currentTime')" class="cursor-pointer hover:text-accent">Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(item, index) in paginatedData" :key="item.sn" :class="{'bg-base-100': currentSn === item.sn}">
+                                        <th>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</th>
+                                        <td class="font-mono">{{ item.sn }}</td>
+                                        <td>
+                                            <span :class="item.result === 'PASS' ? 'text-success' : 'text-error font-bold'">
+                                                {{ item.result }}
+                                            </span>
+                                        </td>
+                                        <td>{{ formatDateTime(item.currentTime).split(' ')[1] }}</td>
+                                        <td>
+                                            <button v-if="item.images && item.images.length > 0" 
+                                                    @click="openPictureCard(item)" 
+                                                    class="btn btn-xs btn-outline btn-accent">
+                                                View
+                                            </button>
+                                            <span v-else class="text-xs opacity-30">-</span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="paginatedData.length === 0">
+                                        <td colspan="5" class="text-center opacity-50 py-4">
+                                            No data found.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div class="flex justify-center mt-4 gap-2">
+                                <button class="btn btn-xs" @click="prevPageGroup" :disabled="currentPage === 1">«</button>
+                                <button class="btn btn-xs" v-for="p in visiblePages" :key="p" 
+                                        :class="{'btn-active': currentPage === p}"
+                                        @click="changePage(p)">{{ p }}</button>
+                                <button class="btn btn-xs" @click="nextPageGroup" :disabled="currentPage === totalPages">»</button>
+                            </div>
+                        </div>
+
+                        <div class="xl:col-span-2 lg:col-span-3 md:col-span-3 h-[80vh]">
+                            <div v-if="showPicture && currentImage" class="bg-base-300 p-4 rounded-lg h-full flex flex-col">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="font-bold text-white">
+                                        SN: <span class="text-accent">{{ currentSn }}</span> 
+                                        <span class="text-xs font-normal opacity-60 ml-2">({{ currentMainIndex + 1 }}/{{ aoi[currentIndex].images.length }})</span>
+                                    </h3>
+                                    <div class="flex gap-2">
+                                        <button @click="resetZoom" class="btn btn-xs btn-ghost">Reset View</button>
+                                        <button @click="downloadImageFile(currentImage)" class="btn btn-xs btn-primary">Download</button>
+                                    </div>
+                                </div>
+
+                                <div class="relative flex-1 bg-black rounded-lg overflow-hidden cursor-grab active:cursor-grabbing border border-gray-700"
+                                    ref="imageContainer"
+                                    @mousedown="startDrag"
+                                    @mousemove="onDrag"
+                                    @mouseup="endDrag"
+                                    @mouseleave="endDrag"
+                                    @wheel.prevent="onMouseWheel">
+                                    
+                                    <div :style="worldStyle" class="w-full h-full flex items-center justify-center relative">
+                                        <img :key="imageKey"
+                                            :src="currentImage.imageUrl || ''"
+                                            ref="mainImage"
+                                            @load="handleMainImageLoad"
+                                            class="object-contain max-w-full max-h-full"
+                                            style="pointer-events: none;" 
+                                        />
+
+                                        <div v-if="isImageReady" class="absolute inset-0 w-full h-full">
+                                             <div v-for="label in currentLabelsReactive" 
+                                                 :key="label.id"
+                                                 class="absolute border-2 border-red-500 hover:bg-red-500/20 cursor-pointer transition-colors"
+                                                 :style="getBBoxStyle(label)"
+                                                 @click.stop="selectedLabel = label"
+                                                 @mouseenter="selectedLabel = label">
+                                                <span class="absolute -top-5 left-0 bg-red-600 text-white text-[10px] px-1 rounded">
+                                                    {{ label.name }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 grid grid-cols-2 gap-4 h-32">
+                                    <div class="flex gap-2 items-center overflow-x-auto p-1 bg-base-100 rounded">
+                                        <button class="btn btn-sm btn-circle" @click="prevImage" :disabled="currentMainIndex === 0">❮</button>
+                                        <div class="flex gap-1 overflow-x-auto">
+                                            <div v-for="(img, idx) in aoi[currentIndex].images" :key="img.id"
+                                                @click="currentMainIndex = idx"
+                                                class="w-16 h-16 border rounded cursor-pointer flex-shrink-0"
+                                                :class="currentMainIndex === idx ? 'border-accent' : 'border-transparent opacity-50'">
+                                                <img :src="img.imageUrl || ''" class="w-full h-full object-cover" />
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-circle" @click="nextImage" :disabled="currentMainIndex >= aoi[currentIndex].images.length - 1">❯</button>
+                                    </div>
+
+                                    <div class="bg-base-100 p-2 rounded text-xs overflow-y-auto">
+                                        <div v-if="selectedLabel">
+                                            <p class="font-bold text-error text-sm mb-1">{{ selectedLabel.name }}</p>
+                                            <div class="grid grid-cols-2 gap-1">
+                                                <span class="opacity-60">Score:</span> <span>{{ (selectedLabel.score * 100).toFixed(1) }}%</span>
+                                                <span class="opacity-60">Annot:</span> <span>{{ selectedLabel.annotation || '-' }}</span>
+                                                <span class="opacity-60">Box ID:</span> <span>{{ selectedLabel.boxId }}</span>
+                                                <span class="opacity-60">Coords:</span> <span>{{ selectedLabel.bbox }}</span>
+                                            </div>
+                                        </div>
+                                        <div v-else class="h-full flex items-center justify-center opacity-40">
+                                            Select a defect box to see details
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-else class="bg-base-300 p-4 rounded-lg h-full flex items-center justify-center text-white opacity-50">
+                                Select a "FAIL" item from the list to view images.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, nextTick } from "vue";
+import axios from 'axios';
+
+// --- CONFIG ---
+const API_BASE_URL = "http://10.175.80.201:5001";
+
+// --- INTERFACES (Corrected for API 5001) ---
+
+// 1. Yield Summary
+interface AOIData {
+    floor: string;
+    line: string;
+    model: string;
+    pass: number;
+    fail: number;
+    total: number;
+    yieldRate: number;
+}
+
+// 2. Detail Item (UPDATED)
+interface AoiDetails {
+    id: number;
+    factory: string;
+    floor: string;
+    line: string;
+    project: string; // "model" in yield, "project" in alldetail
+    sn: string;      // CHANGED from isn
+    result: 'PASS' | 'FAIL'; // CHANGED from status
+    currentTime: string;
+    images: AoiImage[];
+}
+
+interface AoiImage {
+    id: number;
+    position: string;
+    imageUrl: string | null;
+    imageBase64: string | null;
+    boundingBoxes: AoiBoundingBox[];
+    labelDefects: AoiLabelDefects[];
+}
+
+interface AoiBoundingBox {
+    id: number;
+    severity: string;
+    confidence: number;
+    imageUrl: string | null;
+}
+
+interface AoiLabelDefects {
+    id: number;
+    name: string;
+    score: number;
+    annotation: string | null;
+    bbox: [number, number, number, number];
+    boxId?: number;
+}
+
+interface NormalizedLabel extends AoiLabelDefects {
+    boxIndex: number;
+}
+
+type Shape = { label: string; points: [number, number][]; };
+type Position = { position: string; shapes: Shape[]; };
+
+export default defineComponent({
+    data() {
+        return {
+            filters: {
+                floor: '3F',
+                dateFrom: '',
+                dateUntil: '',
+                line: ''
+            },
+            selectedShift: 'day',
+            selectedFloor: '3F',
+            activeFilters: ['date', 'floor'],
+            floors: ['1F', '2F', '3F'],
+            lines: [] as string[],
+            columnsVisibility: {
+                line: true, model: true, total: true, pass: true, fail: true, yieldRate: true,
+            },
+            selectedTab: 'all',
+            allData: [] as AOIData[],
+            detailResult: null as AOIData | null,
+            aoi: [] as AoiDetails[],    
+            aoiChart: [] as AoiDetails[], 
+            selectedLine: '',
+            currentIndex: 0,     
+            currentMainIndex: 0, 
+            currentSn: '',
+            currentPage: 1,
+            itemsPerPage: 15,
+            pageGroupStart: 1,
+            maxVisiblePages: 5,
+            showAll: false,
+            zoomLevel: 1,
+            translateX: 0,
+            translateY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            imageKey: 0,
+            isImageReady: false,
+            currentLabelsReactive: [] as NormalizedLabel[],
+            selectedLabel: null as AoiLabelDefects | null,
+            renderedWidth: 0,
+            renderedHeight: 0,
+            fullNaturalWidth: 0,
+            fullNaturalHeight: 0,
+            offsetX: 0,
+            offsetY: 0,
+            showSummaryCard: true,
+            showDetails: false,
+            showPicture: false,
+            sortKey: '',
+            sortOrder: 'asc',
+            
+            // Charts Config
+            chartOptionsLine: {
+                backgroundColor: 'transparent',
+                title: { text: 'Yield Trend', textStyle: { color: '#fff' } },
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', axisLabel: { color: '#fff' }, data: [] as string[] },
+                yAxis: { type: 'value', axisLabel: { color: '#fff' }, splitLine: { lineStyle: { color: '#444' } } },
+                series: [{ type: 'line', smooth: true, data: [] as number[] }]
+            },
+            chartOptionsGauge: {
+                title: { text: 'Performance', textStyle: { color: '#fff' } },
+                series: [{ type: 'gauge', detail: { formatter: '{value}%' }, data: [{ value: 0 }] }]
+            },
+            chartOptionsPie: {
+                title: { text: 'Total Output', textStyle: { color: '#fff' } },
+                tooltip: { trigger: 'item' },
+                series: [{ type: 'pie', radius: '50%', data: [] as any[] }]
+            },
+            chartOptionsDynamic: {} as any,
+            chartOptionsDynamicKey: 0,
+            
+            position: [
+                { position: "24005072_unit_cap1", shapes: [] }, 
+                // Add more positions here as needed
+            ] as Position[]
+        }
+    },
+    mounted() {
+        const today = new Date().toISOString().split('T')[0];
+        this.filters.dateFrom = `${today}T00:00`;
+        this.filters.dateUntil = `${today}T23:59`;
+        this.fetchAllData();
+    },
+    methods: {
+        async fetchAllData() {
+            const { floor, dateFrom, dateUntil } = this.filters;
+            const startDate = dateFrom.split('T')[0];
+            const endDate = dateUntil.split('T')[0];
+
+            const params = new URLSearchParams();
+            if (floor) params.append('floor', floor);
+            if (this.selectedShift) params.append('shift', this.selectedShift);
+            params.append('startDate', startDate);
+            params.append('endDate', endDate);
+
+            const url = `${API_BASE_URL}/api/AoiData/yield-summary?${params.toString()}&_=${Date.now()}`;
+            
+            try {
+                const res = await axios.get(url);
+                this.allData = res.data || [];
+                this.lines = [...new Set(this.allData.map(i => i.line))];
+                this.updateChartsSummary();
+            } catch (e) {
+                console.error("Fetch Summary Error:", e);
+                this.allData = [];
+            }
+        },
+
+        async handleFailClick(floor: string, line: string) {
+            this.selectedLine = line;
+            this.filters.floor = floor;
+            this.detailResult = this.allData.find(i => i.line === line && i.floor === floor) || null;
+            
+            const startDate = this.filters.dateFrom.split('T')[0];
+            const endDate = this.filters.dateUntil.split('T')[0];
+            
+            const params = new URLSearchParams();
+            params.append('line', line);
+            params.append('startDate', startDate);
+            params.append('endDate', endDate);
+            
+            // API alldetail endpoint
+            const url = `${API_BASE_URL}/api/AoiData/alldetail?${params.toString()}&_=${Date.now()}`;
+
+            try {
+                const res = await axios.get(url);
+                const rawData: AoiDetails[] = Array.isArray(res.data) ? res.data : [res.data];
+
+                // Sort: FAIL first
+                this.aoi = rawData.sort((a, b) => (a.result === 'FAIL' ? -1 : 1));
+                
+                this.generateDynamicChart(this.aoi);
+
+                this.showDetails = true;
+                this.selectedTab = 'details';
+                this.currentPage = 1;
+                
+                // Auto-select first FAIL item with image
+                const firstFailWithImage = this.aoi.find(i => i.result === 'FAIL' && i.images.length > 0);
+                if(firstFailWithImage) {
+                    this.openPictureCard(firstFailWithImage);
+                } else {
+                    this.showPicture = false;
+                }
+
+            } catch (e) {
+                console.error("Fetch Detail Error:", e);
+            }
+        },
+
+        openPictureCard(item: AoiDetails) {
+            this.currentSn = item.sn; // Using 'sn'
+            this.currentIndex = this.aoi.findIndex(x => x.id === item.id);
+            this.currentMainIndex = 0; 
+            this.showPicture = true;
+            this.resetZoom();
+            this.handleMainImageLoad();
+        },
+
+        onMouseWheel(e: WheelEvent) {
+            const zoomSpeed = 0.1;
+            const delta = e.deltaY < 0 ? 1 : -1;
+            const newZoom = Math.max(1, this.zoomLevel + delta * zoomSpeed);
+            this.zoomLevel = newZoom;
+            if(this.zoomLevel === 1) { this.translateX = 0; this.translateY = 0; }
+        },
+        startDrag(e: MouseEvent) {
+            if (this.zoomLevel <= 1) return;
+            this.isDragging = true;
+            this.startX = e.clientX - this.translateX;
+            this.startY = e.clientY - this.translateY;
+        },
+        onDrag(e: MouseEvent) {
+            if (!this.isDragging) return;
+            this.translateX = e.clientX - this.startX;
+            this.translateY = e.clientY - this.startY;
+        },
+        endDrag() { this.isDragging = false; },
+        resetZoom() { this.zoomLevel = 1; this.translateX = 0; this.translateY = 0; },
+
+        handleMainImageLoad() {
+            this.isImageReady = false;
+            nextTick(() => {
+                const img = this.$refs.mainImage as HTMLImageElement;
+                const wrapper = this.$refs.imageContainer as HTMLElement;
+                if (!img || !wrapper) return;
+
+                if (img.complete && img.naturalHeight !== 0) {
+                    this.calculateDimensions(img, wrapper);
+                } else {
+                    img.onload = () => this.calculateDimensions(img, wrapper);
+                }
+            });
+        },
+        calculateDimensions(img: HTMLImageElement, wrapper: HTMLElement) {
+            this.fullNaturalWidth = img.naturalWidth;
+            this.fullNaturalHeight = img.naturalHeight;
+            this.renderedWidth = img.width;   
+            this.renderedHeight = img.height;
+            
+            this.offsetX = (wrapper.clientWidth - this.renderedWidth) / 2;
+            this.offsetY = (wrapper.clientHeight - this.renderedHeight) / 2;
+
+            this.updateLabels();
+            this.isImageReady = true;
+        },
+        updateLabels() {
+            const imgData = this.currentImage;
+            if(!imgData) { this.currentLabelsReactive = []; return; }
+            this.currentLabelsReactive = imgData.labelDefects.map(d => ({
+                ...d,
+                boxIndex: 0 
+            }));
+        },
+        getBBoxStyle(label: NormalizedLabel) {
+            if(!this.isImageReady) return { display: 'none' };
+            const scaleX = this.renderedWidth / this.fullNaturalWidth;
+            const scaleY = this.renderedHeight / this.fullNaturalHeight;
+            const [x, y, w, h] = label.bbox;
+
+            return {
+                left: `${(x * scaleX) + this.offsetX}px`,
+                top: `${(y * scaleY) + this.offsetY}px`,
+                width: `${w * scaleX}px`,
+                height: `${h * scaleY}px`
+            };
+        },
+        updateChartsSummary() {
+            const labels = this.allData.map(d => d.line);
+            const yields = this.allData.map(d => d.yieldRate);
+            
+            (this.chartOptionsLine.xAxis as any).data = labels;
+            (this.chartOptionsLine.series[0].data as any[]) = yields;
+
+            this.chartOptionsPie.series[0].data = this.allData.map(d => ({ name: d.line, value: d.total }));
+        },
+        generateDynamicChart(details: AoiDetails[]) {
+            const times = details.map(d => d.currentTime.split('T')[1]);
+            
+            this.chartOptionsDynamic = {
+                title: { text: `Inspection Timeline (${this.selectedLine})`, textStyle: { color: '#fff'} },
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: times, axisLabel: { color: '#fff' } },
+                yAxis: { type: 'category', data: ['FAIL', 'PASS'], axisLabel: { color: '#fff' } },
+                series: [{
+                    type: 'scatter',
+                    symbolSize: 10,
+                    data: details.map(d => [d.currentTime.split('T')[1], d.result]),
+                    itemStyle: {
+                        color: (params: any) => params.data[1] === 'PASS' ? '#00d3bb' : '#ff4f6d'
+                    }
+                }]
+            };
+            this.chartOptionsDynamicKey++;
+        },
+
+        // Navigation
+        prevImage() { if (this.currentMainIndex > 0) this.currentMainIndex--; },
+        nextImage() { if (this.aoi[this.currentIndex] && this.currentMainIndex < this.aoi[this.currentIndex].images.length - 1) this.currentMainIndex++; },
+        
+        // Formatters
+        formatDateTime(dt: string) { return dt.replace('T', ' '); },
+        formatDateRange(range: string) { return range; },
+        getBadgeColor(val: number) {
+            if (val >= 90) return `<div class="badge badge-success">${val}%</div>`;
+            if (val >= 70) return `<div class="badge badge-warning">${val}%</div>`;
+            return `<div class="badge badge-error">${val}%</div>`;
+        },
+        
+        // Sorting & Pagination
+        sortBy(key: string) {
+            this.sortKey = key;
+            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+             this.aoi.sort((a: any, b: any) => {
+                let valA = a[key];
+                let valB = b[key];
+                if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+        },
+        changePage(p: number) { this.currentPage = p; },
+        prevPageGroup() { if(this.currentPage > 1) this.currentPage--; },
+        nextPageGroup() { if(this.currentPage < this.totalPages) this.currentPage++; },
+        
+        // Placeholders
+        onFloorChange() { this.fetchAllData(); },
+        onApply() { this.fetchAllData(); },
+        handleShiftChange() { this.fetchAllData(); },
+        async downloadImageFile(img: any) { 
+            const link = document.createElement('a');
+            link.href = img.imageUrl;
+            link.download = `AOI_${img.id}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    },
+    computed: {
+        currentImage(): AoiImage | null {
+            if (!this.aoi[this.currentIndex]) return null;
+            return this.aoi[this.currentIndex].images[this.currentMainIndex] || null;
+        },
+        totalPages() { return Math.ceil(this.aoi.length / this.itemsPerPage); },
+        paginatedData(): AoiDetails[] {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            return this.aoi.slice(start, start + this.itemsPerPage);
+        },
+        visiblePages() {
+            let pages = [];
+            for(let i=1; i<=Math.min(5, this.totalPages); i++) pages.push(i);
+            return pages;
+        },
+        sortedData() { return this.paginatedData; },
+        worldStyle() {
+            return {
+                transform: `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`,
+                transformOrigin: 'center center',
+                transition: this.isDragging ? 'none' : 'transform 0.1s ease-out'
+            }
+        }
+    },
+    watch: {
+        currentMainIndex() { this.imageKey++; this.handleMainImageLoad(); }
+    }
+});
+</script>
+
+<style scoped>
+.summary-card { transition: transform 0.2s ease; }
+.summary-card:hover { transform: translateY(-4px); }
+.radio-button { display: inline-block; position: relative; cursor: pointer; }
+.radio-button__input { position: absolute; opacity: 0; width: 0; height: 0; }
+.radio-button__label { display: inline-block; padding-left: 30px; margin-bottom: 10px; position: relative; font-size: 12px; color: #fff; cursor: pointer; transition: all 0.3s; }
+.radio-button__custom { position: absolute; top: 50%; left: 0; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; border: 2px solid #555; transition: all 0.3s; }
+.radio-button__input:checked+.radio-button__label .radio-button__custom { transform: translateY(-50%) scale(0.9); border: 5px solid #00d3bb; }
+.radio-button__input:checked+.radio-button__label { color: #00d3bb; }
+.animate-fade { animation: fadeAnim 2.5s ease forwards; }
+@keyframes fadeAnim { 0% { opacity: 0; transform: translate(-50%, -10px); } 20% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+.table-info { background-color: #2a303c; color: white; }
+</style>

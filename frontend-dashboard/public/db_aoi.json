@@ -1,0 +1,146 @@
+{
+    "aoi": [{
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCCE44",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg",
+            "img/aoi/Img_Main_3.jpg"
+        ],
+        "pieces": [
+            [
+                 "img/aoi/Label1_NG_1.jpg"
+            ],
+            [
+                 "img/aoi/Label2_NG_2.jpg",
+                 "img/aoi/Label3_NG_3.jpg"
+            ]
+        ],
+        "currentTime": "2025-11-21 05:20:09"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCCF14",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_4.jpg",
+            "img/aoi/Img_Main_5.jpg"
+        ],
+        "pieces": [
+            [
+                "img/aoi/3896LG_YBES52504675_20251111071649_front_label_9_label_NG0.6736.png"
+            ],
+            [
+                "img/aoi/3896LG_YBES52508569_20251111070454_hou1_label_0_label_NG0.8462.png"
+            ]
+            
+        ],
+        "currentTime": "2025-11-21 05:30:21"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCCEDC",
+        "pass": 0,
+        "fail": 1,  
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [
+             [
+                "img/aoi/3896LG_YBES52524320_20251111082937_top2_label_1_label_NG0.9999.png"
+            ],
+            [
+                "img/aoi/3896LG_YBES52527312_20251111043609_left2_label_15_label_NG0.8098.png"
+            ]
+        ],
+        "currentTime": "2025-11-21 05:40:35"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCC9E4",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [
+             [
+                "img/aoi/3896LG_YBES52504675_20251111071649_front_label_9_label_NG0.6736.png"
+            ],
+            [
+                "img/aoi/3896LG_YBES52508569_20251111070454_hou1_label_0_label_NG0.8462.png"
+            ]
+        ],
+        "currentTime": "2025-11-21 05:50:49"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCC96C",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [ ],
+        "currentTime": "2025-11-21 06:00:51"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCC48C",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [ ],
+        "currentTime": "2025-11-21 06:20:10"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCC77C",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [ ],
+        "currentTime": "2025-11-21 06:30:05"
+    }, {
+        "floor": "2F",
+        "line": "2f17",
+        "ISN" : "0CFE7BFCCE6C",
+        "pass": 0,
+        "fail": 1,
+        "total": 1,
+        "yieldRate": 0,
+        "main_images": [
+            "img/aoi/Img_Main_1.jpg",
+            "img/aoi/Img_Main_2.jpg"
+        ],
+        "pieces": [ ],
+        "currentTime": "2025-11-21 06:40:13"
+    }]
+}

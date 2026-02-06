@@ -1,0 +1,27 @@
+# ========================
+# .NET / C# IGNORES
+# ========================
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+# ========================
+# NODE.JS / VUE IGNORES
+# ========================
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+.env
+.env.local
+.DS_Store
+
+# ========================
+# OS JUNK FILES
+# ========================
+Thumbs.db
+Desktop.ini

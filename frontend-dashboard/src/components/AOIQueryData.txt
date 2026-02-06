@@ -1,0 +1,3363 @@
+<template>
+    <div class="aoi font-inter">
+        <div class="flex flex-col space-y-4">
+            <div class="w-full bg-base-300 p-4 rounded-lg shadow mb-4 summary-card">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex gap-4">
+                        <span class="font-semibold">{{$t('Filters')}}:</span>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div v-if="activeFilters.includes('floor')">
+                                <select v-project="filters.floor" @change="onFloorChange"
+                                    class="select select-bordered select-sm">
+                                    <option value="">All Floor</option>
+                                    <option v-for="floor in floors" :key="floor">{{ floor }}</option>
+                                </select>
+                            </div>
+
+                            <div v-if="activeFilters.includes('date')" class="flex items-center gap-2">
+                                <input type="datetime-local" v-project="filters.dateFrom"
+                                    class="input input-bordered input-sm" />
+                                <span class="strip">-</span>
+                                <input type="datetime-local" v-project="filters.dateUntil"
+                                    class="input input-bordered input-sm" />
+                                <button @click="onApply" class="btn btn-sm btn-accent">{{$t('Apply')}}</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div @change="handleShiftChange" class="radio-buttons-container flex items-center gap-4 mt-4">
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio0" class="radio-button__input" type="radio" value=""
+                                v-project="selectedShift">
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio1" class="radio-button__input" type="radio" value="day"
+                                v-project="selectedShift">
+                            <label for="radio1" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Day Shift')}}
+                            </label>
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio2" class="radio-button__input" type="radio"
+                                value="middle" v-project="selectedShift">
+                            <label for="radio2" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Middle Shift')}}
+                            </label>
+                        </div>
+                        <div class="radio-button">
+                            <input name="radio-group" id="radio3" class="radio-button__input" type="radio" value="night"
+                                v-project="selectedShift">
+                            <label for="radio3" class="radio-button__label">
+                                <span class="radio-button__custom"></span>
+                                {{$t('Night Shift')}}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tabs tabs-border">
+                <input type="radio" name="my_tabs_2" class="tab" v-project="selectedTab" :aria-label="$t('All Info')"
+                    value="all" />
+                <div class="tab-content bg-transparent p-4 overflow-hidden rounded-lg" v-if="selectedTab==='all'">
+                    <div class="card bg-base-300 h-full p-4 summary-card">
+                        <div class="overflow-x-auto flex">
+                            <table class="table">
+                                <!-- head -->
+                                <thead>
+                                    <tr>
+                                        <th>{{$t('Floor')}}</th>
+                                        <th v-if="columnsVisibility.line">{{$t('Line')}}</th>
+                                        <th v-if="columnsVisibility.pass">PASS</th>
+                                        <th v-if="columnsVisibility.fail">FAIL</th>
+                                        <th v-if="columnsVisibility.total">{{$t('Total')}}</th>
+                                        <th v-if="columnsVisibility.yieldRate">Yield Rate (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody v-if="showSummaryCard">
+                                    <tr v-for="(item) in allData" :key="`${item.floor}-${item.line}`"
+                                        v-if="allData.length > 0">
+                                        <th>{{ item.floor }}</th>
+                                        <td v-if="columnsVisibility.line">{{ item.line }}</td>
+                                        <td v-if="columnsVisibility.pass">{{ item.pass }}</td>
+                                        <td v-if="columnsVisibility.fail">
+                                            <button @click="handleFailClick(item.floor, item.line)">
+                                                <span class="text-error underline"> {{ item.fail }}</span>
+                                            </button>
+                                        </td>
+                                        <td v-if="columnsVisibility.total">{{ item.total }}</td>
+                                        <td v-if="columnsVisibility.yieldRate"
+                                            v-html="getBadgeColor(item.yieldRate )" />
+                                    </tr>
+
+                                    <p class="ms-5 mt-5" v-else-if="allData.length < 0">No product data available for
+                                        this line
+                                    </p>
+                                    <p class="ms-5 mt-5 animate-pulse" v-else>Loading data...</p>
+                                </tbody>
+                            </table>
+                            <div v-if="showSummaryCard" class="tooltip tooltip-left" data-tip="customize list layout">
+                                <div class="dropdown dropdown-bottom dropdown-end">
+                                    <div tabindex="0" role="button" class="btn btn-circle btn-ghost btn-xs text-accent">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                            class="size-5">
+                                            <path
+                                                d="M10 3.75a2 2 0 1 0-4 0 2 2 0 0 0 4 0ZM17.25 4.5a.75.75 0 0 0 0-1.5h-5.5a.75.75 0 0 0 0 1.5h5.5ZM5 3.75a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5a.75.75 0 0 1 .75.75ZM4.25 17a.75.75 0 0 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5h1.5ZM17.25 17a.75.75 0 0 0 0-1.5h-5.5a.75.75 0 0 0 0 1.5h5.5ZM9 10a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1 0-1.5h5.5A.75.75 0 0 1 9 10ZM17.25 10.75a.75.75 0 0 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5h1.5ZM14 10a2 2 0 1 0-4 0 2 2 0 0 0 4 0ZM10 16.25a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z" />
+                                        </svg>
+                                    </div>
+                                    <ul tabindex="0"
+                                        class="dropdown-content menu menu-horizontal bg-base-100 rounded-box z-50 w-auto p-2 shadow-sm flex flex-row gap-2">
+                                        <li
+                                            class="label-menu font-bold text-xs text-white px-2 py-1 pointer-events-none">
+                                            <span class="text-accent">{{$t('Customize List Layout')}}</span>
+                                        </li>
+                                        <div class="flex flex-row">
+                                            <li>
+                                                <div
+                                                    class="collapse collapse-arrow bg-base-100 text-white w-40 min-w-fit whitespace-nowrap">
+                                                    <input type="checkbox" />
+                                                    <div class="collapse-title font-semibold">{{$t('Line')}}</div>
+                                                    <div class="collapse-content text-sm">
+                                                        <div class="flex flex-row gap-2">
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Show')}}</span>
+                                                                <input type="radio" name="radio-line"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('line', true)"
+                                                                    :checked="columnsVisibility.line" />
+                                                            </label>
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Hide')}}</span>
+                                                                <input type="radio" name="radio-line"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('line', false)"
+                                                                    :checked="!columnsVisibility.line" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div
+                                                    class="collapse collapse-arrow bg-base-100 text-white w-40 min-w-fit whitespace-nowrap">
+                                                    <input type="checkbox" />
+                                                    <div class="collapse-title font-semibold">{{$t('Total')}}</div>
+                                                    <div class="collapse-content text-sm">
+                                                        <div class="flex flex-row gap-2">
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Show')}}</span>
+                                                                <input type="radio" name="radio-total"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('total', true)"
+                                                                    :checked="columnsVisibility.total" />
+                                                            </label>
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Hide')}}</span>
+                                                                <input type="radio" name="radio-total"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('total', false)"
+                                                                    :checked="!columnsVisibility.total" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div
+                                                    class="collapse collapse-arrow bg-base-100 text-white w-40 min-w-fit whitespace-nowrap">
+                                                    <input type="checkbox" />
+                                                    <div class="collapse-title font-semibold">Pass</div>
+                                                    <div class="collapse-content text-sm">
+                                                        <div class="flex flex-row gap-2">
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Show')}}</span>
+                                                                <input type="radio" name="radio-pass"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('pass', true)"
+                                                                    :checked="columnsVisibility.pass" />
+                                                            </label>
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Hide')}}</span>
+                                                                <input type="radio" name="radio-pass"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('pass', false)"
+                                                                    :checked="!columnsVisibility.pass" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </div>
+                                        <div class="flex flex-row">
+                                            <li>
+                                                <div
+                                                    class="collapse collapse-arrow bg-base-100 text-white w-40 min-w-fit whitespace-nowrap">
+                                                    <input type="checkbox" />
+                                                    <div class="collapse-title font-semibold">Fail</div>
+                                                    <div class="collapse-content text-sm">
+                                                        <div class="flex flex-row gap-2">
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Show')}}</span>
+                                                                <input type="radio" name="radio-fail"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('fail', true)"
+                                                                    :checked="columnsVisibility.fail" />
+                                                            </label>
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Hide')}}</span>
+                                                                <input type="radio" name="radio-fail"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('fail', false)"
+                                                                    :checked="!columnsVisibility.fail" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div
+                                                    class="collapse collapse-arrow bg-base-100 text-white w-40 min-w-fit whitespace-nowrap">
+                                                    <input type="checkbox" />
+                                                    <div class="collapse-title font-semibold">Yield Rate</div>
+                                                    <div class="collapse-content text-sm">
+                                                        <div class="flex flex-row gap-2">
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Show')}}</span>
+                                                                <input type="radio" name="radio-yieldRate"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('yieldRate', true)"
+                                                                    :checked="columnsVisibility.yieldRate" />
+                                                            </label>
+                                                            <label class="label cursor-pointer flex gap-2">
+                                                                <span class="label-text">{{$t('Hide')}}</span>
+                                                                <input type="radio" name="radio-yieldRate"
+                                                                    class="radio radio-sm"
+                                                                    @change="setColumnVisibility('yieldRate', false)"
+                                                                    :checked="!columnsVisibility.yieldRate" />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </div>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="radio" name="my_tabs_2" class="tab" :aria-label="$t('Analytics')" v-project="selectedTab"
+                    value="analytics" @click="onApply" />
+                <div class="tab-content bg-transparent p-4 overflow-hidden rounded-lg">
+                    <div class="grid grid-flow-row-dense grid-cols-6 auto-rows-fr gap-4 ">
+                        <div class="col-span-2 card bg-base-300 shadow-xl h-full p-4 summary-card">
+                            <div class="relative w-full h-full">
+                                <!-- chart -->
+                                <v-chart :option="chartOptionsLine" autoresize class="w-full h-full " />
+                                <select
+                                    class="select select-bordered select-sm w-32 absolute xl:top-2 lg:top-10 md:top-10 right-2 z-10 bg-base-200 backdrop-blur-sm ">
+                                    <option value="week" selected>Last Week</option>
+                                    <option value="month">Last Month</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-span-2 card bg-base-300 shadow-xl flex flex-col h-full p-4 summary-card ">
+                            <div class="relative w-full h-96">
+                                <!-- chart -->
+                                <v-chart :option="chartOptionsGauge" autoresize class="w-full h-full" />
+                                <select v-project="filters.line"
+                                    class="select select-bordered select-sm w-32 absolute xl:top-2 lg:top-10 md:top-1 right-4 z-10 bg-base-200 backdrop-blur-sm">
+                                    <option disabled value="">{{$t('Choose Line')}}</option>
+                                    <option v-for="line in lines" :key="line">{{ line }}</option>
+                                </select>
+                            </div>
+                            <div class="stats">
+                                <div class="stat p-2 gap-2">
+                                    <div class="stat-title xl:text-xs lg:text-wrap md:text-wrap">Total Production</div>
+                                    <div class="stat-value text-sm">40</div>
+                                </div>
+                                <div class="stat p-2 gap-2">
+                                    <div class="stat-title xl:text-xs lg:text-wrap md:text-wrap">Net Time (minutes)
+                                    </div>
+                                    <div class="stat-value text-sm">360</div>
+                                </div>
+                                <div class="stat p-2 gap-2">
+                                    <div class="stat-title xl:text-xs lg:text-wrap md:text-wrap">CT (minutes/product)
+                                    </div>
+                                    <div class="stat-value text-sm">9.00</div>
+                                </div>
+                                <div class="stat p-2 gap-2">
+                                    <div class="stat-title xl:text-xs lg:text-wrap  md:text-wrap">CT (seconds/product)
+                                    </div>
+                                    <div class="stat-value text-sm">540.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-2 card bg-base-300 shadow-xl flex flex-col h-full p-4 summary-card ">
+                            <div class="relative w-full h-full">
+                                <!-- chart -->
+                                <v-chart :option="chartOptionsPie" autoresize class="w-full h-full" />
+                                <select
+                                    class="select select-bordered select-sm w-32 absolute xl:top-2 lg:top-10 md:top-10 right-2 z-10 bg-base-200 backdrop-blur-sm">
+                                    <option value="week" selected>Last Week</option>
+                                    <option value="month">Last Month</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-span-6 card bg-base-300 shadow-xl flex flex-col h-full p-4 summary-card">
+                            <v-chart :option="chartOptionsDynamic" :key="chartOptionsDynamicKey" autoresize
+                                class="w-full h-full" />
+                            <select v-project="filters.line"
+                                class="select select-bordered select-sm w-32 absolute xl:top-2 lg:top-10 md:top-4 right-4 z-10 bg-base-200 backdrop-blur-sm">
+                                <option disabled value="">{{$t('Choose Line')}}</option>
+                                <option v-for="line in lines" :key="line">{{ line }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <input v-if="showDetails" type="radio" name="my_tabs_2" class="tab"
+                    :aria-label="$t('Details of', {line : selectedLine})" v-project="selectedTab" value="details" />
+                <div v-if="showDetails" class="tab-content bg-transparent p-4 overflow-hidden rounded-lg">
+                    <div class="grid xl:grid-cols-4 lg:grid-cols-5 md:grid-cols-5 gap-4">
+                        <div class="xl:col-span-2 lg:col-span-2 md:col-span-2 bg-base-300 p-4 rounded-lg">
+                            <span
+                                class="flex gap-2 items-center xl:text-sm lg:text-xs md:text-xs text-white opacity-60">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    class="xl:size-4 lg:size-3 md:size-3">
+                                    <path fill-rule="evenodd"
+                                        d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                {{$t('Information')}}
+                            </span>
+                            <div class="grid xl:grid-cols-2 lg:grid-cols-2 md:grid-cols-1 gap-4 mt-4">
+                                <div class="p-4 bg-base-100 rounded-lg shadow-sm justify-between table-info">
+                                    <table class="table w-full text-sm justify-between ">
+                                        <tbody>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    Line</th>
+                                                <td class="font-medium">{{ selectedLine }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    PASS</th>
+                                                <td class="text-accent font-medium">{{ detailResult?.pass }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    FAIL</th>
+                                                <td class="text-error font-medium">{{ detailResult?.fail }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="p-4 bg-base-100 rounded-lg shadow-sm table-info">
+                                    <table class="table w-full text-sm">
+                                        <tbody>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    Total</th>
+                                                <td class="font-medium">{{ detailResult?.total }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    Yield Rate (%)</th>
+                                                <td class="font-medium">{{ detailResult?.yieldRate }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    Date Selected</th>
+                                                <td class="font-medium">{{ formatDateRange(selectedDateRange) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div
+                                class="flex gap-2 items-center text-white opacity-60 xl:text-sm lg:text-xs md:text-xs mt-4 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    class="xl:size-4 lg:size-3 md:size-3">
+                                    <path fill-rule="evenodd"
+                                        d="M.99 5.24A2.25 2.25 0 0 1 3.25 3h13.5A2.25 2.25 0 0 1 19 5.25l.01 9.5A2.25 2.25 0 0 1 16.76 17H3.26A2.267 2.267 0 0 1 1 14.74l-.01-9.5Zm8.26 9.52v-.625a.75.75 0 0 0-.75-.75H3.25a.75.75 0 0 0-.75.75v.615c0 .414.336.75.75.75h5.373a.75.75 0 0 0 .627-.74Zm1.5 0a.75.75 0 0 0 .627.74h5.373a.75.75 0 0 0 .75-.75v-.615a.75.75 0 0 0-.75-.75H11.5a.75.75 0 0 0-.75.75v.625Zm6.75-3.63v-.625a.75.75 0 0 0-.75-.75H11.5a.75.75 0 0 0-.75.75v.625c0 .414.336.75.75.75h5.25a.75.75 0 0 0 .75-.75Zm-8.25 0v-.625a.75.75 0 0 0-.75-.75H3.25a.75.75 0 0 0-.75.75v.625c0 .414.336.75.75.75H8.5a.75.75 0 0 0 .75-.75ZM17.5 7.5v-.625a.75.75 0 0 0-.75-.75H11.5a.75.75 0 0 0-.75.75V7.5c0 .414.336.75.75.75h5.25a.75.75 0 0 0 .75-.75Zm-8.25 0v-.625a.75.75 0 0 0-.75-.75H3.25a.75.75 0 0 0-.75.75V7.5c0 .414.336.75.75.75H8.5a.75.75 0 0 0 .75-.75Z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <span>Fail Details</span>
+                            </div>
+
+                            <div class="overflow-x-auto w-full">
+                                <table class="table w-full xl:text-sm lg:text-xs md:text-xs">
+                                    <thead class="bg-base-100 table-info">
+                                        <tr class="xl:text-sm lg:text-xs md:text-xs">
+                                            <th>#</th>
+                                            <th @click="sortBy('sn')" class="cursor-pointer ">
+                                                <div class="flex items-center gap-2">
+                                                    Product Serial Number (ISN)
+                                                    <span>
+                                                        <svg v-if="sortOrder === 'asc'"
+                                                            xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 18a.75.75 0 0 1-.75-.75V4.66L7.3 6.76a.75.75 0 0 1-1.1-1.02l3.25-3.5a.75.75 0 0 1 1.1 0l3.25 3.5a.75.75 0 1 1-1.1 1.02l-1.95-2.1v12.59A.75.75 0 0 1 10 18Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+
+                                                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 2a.75.75 0 0 1 .75.75v12.59l1.95-2.1a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 1 1 1.1-1.02l1.95 2.1V2.75A.75.75 0 0 1 10 2Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </th>
+                                            <th @click="sortBy('fail')" class="cursor-pointer ">
+                                                <div class="flex items-center gap-2">
+                                                    Fail Count
+                                                    <span>
+                                                        <svg v-if="sortOrder === 'asc'"
+                                                            xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 18a.75.75 0 0 1-.75-.75V4.66L7.3 6.76a.75.75 0 0 1-1.1-1.02l3.25-3.5a.75.75 0 0 1 1.1 0l3.25 3.5a.75.75 0 1 1-1.1 1.02l-1.95-2.1v12.59A.75.75 0 0 1 10 18Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+
+                                                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 2a.75.75 0 0 1 .75.75v12.59l1.95-2.1a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 1 1 1.1-1.02l1.95 2.1V2.75A.75.75 0 0 1 10 2Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </th>
+                                            <th @click="sortBy('currentTime')" class="cursor-pointer ">
+                                                <div class="flex items-center gap-2">
+                                                    Recorded At
+                                                    <span>
+                                                        <svg v-if="sortOrder === 'asc'"
+                                                            xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 18a.75.75 0 0 1-.75-.75V4.66L7.3 6.76a.75.75 0 0 1-1.1-1.02l3.25-3.5a.75.75 0 0 1 1.1 0l3.25 3.5a.75.75 0 1 1-1.1 1.02l-1.95-2.1v12.59A.75.75 0 0 1 10 18Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+
+                                                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3 h-3"
+                                                            fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 2a.75.75 0 0 1 .75.75v12.59l1.95-2.1a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 1 1 1.1-1.02l1.95 2.1V2.75A.75.75 0 0 1 10 2Z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(item, index) in sortedData" :key="item.sn">
+                                            <th>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</th>
+                                            <td>ISN : {{ item.sn }}</td>
+                                            <td>
+                                                <button @click="openPictureCard(item)" class="text-error underline">
+                                                    N/A
+                                                </button>
+                                            </td>
+                                            <td>{{ formatDateTime(item.currentTime) }}</td>
+                                        </tr>
+                                        <tr v-if="paginatedData.length === 0">
+                                            <td colspan="4" class="text-center text-white opacity-50 py-4">
+                                                {{$t('Loading details...')}}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="pagination flex justify-center items-center gap-2 mt-8">
+                                <div class="tab-group">
+                                    <label :class="{ disabled: firstVisiblePage === 1 }" @click="prevPageGroup">
+                                        <span class="text-white underline">&lt;</span>
+                                    </label>
+                                </div>
+
+                                <div v-for="page in visiblePages" :key="page" class="tab-group">
+                                    <label :class="{ active: currentPage === page && !showAll }"
+                                        @click="changePage(page)">
+                                        <span class="text-white">{{ page }}</span>
+                                    </label>
+                                </div>
+
+                                <div class="tab-group">
+                                    <label :class="{ disabled: lastVisiblePage >= totalPages }" @click="nextPageGroup">
+                                        <span class="text-white underline">&gt;</span>
+                                    </label>
+                                </div>
+                                <div class="tab-group">
+                                    <label :class="{ active: showAll }" @click="showAllData">
+                                        <span class="text-white underline">All</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="xl:col-span-2 lg:col-span-3 md:col-span-3" v-if="showPicture === true">
+                            <div class="grid xl:grid-cols-2 lg:grid-cols-2 md:grid-cols-2 bg-base-300 p-4 rounded-lg"
+                                v-if="aoi[currentIndex]">
+                                <div class="xl:col-span-2 lg:col-span-2 md:col-span-2">
+                                    <span
+                                        class="flex gap-2 items-center xl:text-sm lg:text-xs md:text-xs opacity-60 text-white">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                            class="xl:size-4 lg:size-3 md:size-3">
+                                            <path fill-rule="evenodd"
+                                                d="M1 5.25A2.25 2.25 0 0 1 3.25 3h13.5A2.25 2.25 0 0 1 19 5.25v9.5A2.25 2.25 0 0 1 16.75 17H3.25A2.25 2.25 0 0 1 1 14.75v-9.5Zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 0 0 .75-.75v-2.69l-2.22-2.219a.75.75 0 0 0-1.06 0l-1.91 1.909.47.47a.75.75 0 1 1-1.06 1.06L6.53 8.091a.75.75 0 0 0-1.06 0l-2.97 2.97ZM12 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        Product {{ currentIndex + 1 }} Image Preview
+                                    </span>
+                                    <div class="bg-base-300 p-4 rounded-lg">
+                                        <div
+                                            class="flex xl:flex-row lg:flex-row md:flex-col gap-2 justify-between relative">
+                                            <div
+                                                class="xl:w-full lg:w-fit md:w-full carousel space-x-4 xl:col-span-3 lg:col-span-2 ">
+                                                <div class="carousel-item relative">
+                                                    <div v-if="isMainImageLoading"
+                                                        class="absolute inset-0 flex items-center justify-center bg-base-300 bg-opacity-70">
+                                                        <span
+                                                            class="text-white text-lg animate-pulse font-inter place-self-center">Loading
+                                                            Image...</span>
+                                                    </div>
+                                                    <div class="relative inline-block" ref="imgWrapper">
+                                                        <div v-if="aoi.length > 0
+                                                                    && aoi[currentIndex]
+                                                                    && aoi[currentIndex].images.length > 0
+                                                                    ">
+                                                            <div class="flex flex-wrap gap-2">
+                                                                <!-- Full Image Wrapper -->
+                                                                <div class="relative overflow-hidden xl:max-h-[50vh] xl:max-w-[70vw] lg:max-h-[50vh] lg:max-w-[45vw] md:max-h-[50vh] md:max-w-[40vw] rounded-md cursor-grab active:cursor-grabbing"
+                                                                    ref="imageContainer" :style="worldStyle"
+                                                                    @mousedown="startDrag" @mousemove="onDrag"
+                                                                    @mouseup="endDrag" @mouseleave="endDrag"
+                                                                    @wheel.prevent="onMouseWheel"
+                                                                    @mouseenter="showWheelTooltip">
+
+                                                                    <div v-if="showWheelHint" class="absolute top-2 left-1/2 -translate-x-1/2  bg-black bg-opacity-70 text-white text-xs 
+                                                                                px-3 py-1 rounded-md shadow-md 
+                                                                                animate-fade flex gap-2">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-4">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M13.75 7h-3V3.66l1.95 2.1a.75.75 0 1 0 1.1-1.02l-3.25-3.5a.75.75 0 0 0-1.1 0L6.2 4.74a.75.75 0 0 0 1.1 1.02l1.95-2.1V7h-3A2.25 2.25 0 0 0 4 9.25v7.5A2.25 2.25 0 0 0 6.25 19h7.5A2.25 2.25 0 0 0 16 16.75v-7.5A2.25 2.25 0 0 0 13.75 7Zm-3 0h-1.5v5.25a.75.75 0 0 0 1.5 0V7Z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                        Use your mouse wheel to zoom in and zoom out
+                                                                    </div>
+
+                                                                    <img :key="imageKey"
+                                                                        :src="aoi[currentIndex].images[currentMainIndex].imageUrl"
+                                                                        ref="mainImage" @load="handleMainImageLoad"
+                                                                        class="object-contain max-h-[50vh]" :class="[
+                                                                            'transition-opacity duration-200',
+                                                                            isImageReady ? 'opacity-100' : 'opacity-0'
+                                                                        ]" />
+
+                                                                    <div v-if="isImageReady">
+                                                                        <!-- Bounding boxes -->
+                                                                        <div v-for="label in currentLabelsReactive"
+                                                                            :key="label.id"
+                                                                            class="absolute bbox-item z-10"
+                                                                            :class="{ 'scale-125 shadow-xl': selectedLabel?.id === label.id }"
+                                                                            :style="getBBoxStyle(
+                                                                        label, aoi[currentIndex].images.find(img => 
+                                                                            img.boundingBoxes.some(b => b.id === label.boxId))?.position)"
+                                                                            @click.stop="onBBoxClick(label)"
+                                                                            @mouseenter="onLabelHover(label)">
+                                                                            <span
+                                                                                class="bbox-tag">{{ label.name }}</span>
+                                                                        </div>
+
+                                                                        <!-- Shape boxes -->
+                                                                        <div v-if="showShapeBoxes">
+                                                                            <div
+                                                                                v-if="aoi[currentIndex].images[currentMainIndex]">
+                                                                                <div v-for="pos in position.filter(p => p.position === aoi[currentIndex].images[currentMainIndex].position)"
+                                                                                    :key="pos.position">
+                                                                                    <div v-for="shape in pos.shapes"
+                                                                                        :key="shape.label"
+                                                                                        :style="getShapeStyle(shape)"
+                                                                                        class="absolute bbox-shape">
+                                                                                        <span
+                                                                                            class="text-red-600 text-xs">{{ shape.label }}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="absolute bottom-2 left-2 flex justify-center items-center z-10 ">
+                                                                <div class="flex gap-4 bg-base-300 p-2 rounded-full">
+                                                                    <button
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle"
+                                                                        type="button"
+                                                                        @click="downloadImageFile(aoi[currentIndex].images[currentMainIndex])">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-4">
+                                                                            <path
+                                                                                d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+                                                                            <path
+                                                                                d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button v-if="!showShapeBoxes"
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle"
+                                                                        type="button" @click="showShape">
+
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-4">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M3.28 2.22a.75.75 0 0 0-1.06 1.06l14.5 14.5a.75.75 0 1 0 1.06-1.06l-1.745-1.745a10.029 10.029 0 0 0 3.3-4.38 1.651 1.651 0 0 0 0-1.185A10.004 10.004 0 0 0 9.999 3a9.956 9.956 0 0 0-4.744 1.194L3.28 2.22ZM7.752 6.69l1.092 1.092a2.5 2.5 0 0 1 3.374 3.373l1.091 1.092a4 4 0 0 0-5.557-5.557Z"
+                                                                                clip-rule="evenodd" />
+                                                                            <path
+                                                                                d="m10.748 13.93 2.523 2.523a9.987 9.987 0 0 1-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 0 1 0-1.186A10.007 10.007 0 0 1 2.839 6.02L6.07 9.252a4 4 0 0 0 4.678 4.678Z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button v-if="showShapeBoxes"
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle"
+                                                                        type="button" @click="unShowShape">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-4">
+                                                                            <path
+                                                                                d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle"
+                                                                        type="button" @click="resetZoom"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-4">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button @click="prevImage"
+                                                                        :disabled="currentMainIndex === 0"
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 16 16" fill="currentColor"
+                                                                            class="size-5">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M9.78 4.22a.75.75 0 0 1 0 1.06L7.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l3.25-3.25a.75.75 0 0 1 1.06 0Z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button @click="nextImage"
+                                                                        :disabled="currentMainIndex === aoi[currentIndex].images.length - 1"
+                                                                        class="btn btn-soft btn-accent btn-xs btn-circle">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor"
+                                                                            class="size-5">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="xl:col-span-2 lg:col-span-2 md:col-span-2 ">
+                                    <span
+                                        class="flex gap-2 items-center xl:text-sm lg:text-xs md:text-xs opacity-60 text-white">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                                            class="xl:size-4 lg:size-3 md:size-3">
+                                            <path
+                                                d="M3.5 2A1.5 1.5 0 0 0 2 3.5v2A1.5 1.5 0 0 0 3.5 7h2A1.5 1.5 0 0 0 7 5.5v-2A1.5 1.5 0 0 0 5.5 2h-2ZM3.5 9A1.5 1.5 0 0 0 2 10.5v2A1.5 1.5 0 0 0 3.5 14h2A1.5 1.5 0 0 0 7 12.5v-2A1.5 1.5 0 0 0 5.5 9h-2ZM9 3.5A1.5 1.5 0 0 1 10.5 2h2A1.5 1.5 0 0 1 14 3.5v2A1.5 1.5 0 0 1 12.5 7h-2A1.5 1.5 0 0 1 9 5.5v-2ZM10.5 9A1.5 1.5 0 0 0 9 10.5v2a1.5 1.5 0 0 0 1.5 1.5h2a1.5 1.5 0 0 0 1.5-1.5v-2A1.5 1.5 0 0 0 12.5 9h-2Z" />
+                                        </svg>
+                                        Failed Area Preview
+                                    </span>
+
+                                    <div class="bg-base-300 p-4 rounded-lg flex flex-row gap-4">
+                                        <div class="flex-col justify-between xl:max-w-full lg:max-w-48 md:max-w-48">
+                                            <ul class="list bg-base-100 rounded-box shadow-md">
+                                                <li
+                                                    class="p-4 pb-2 xl:text-sm lg:text-xs md:text-xs opacity-60 tracking-wide">
+                                                    Other Details
+                                                </li>
+
+                                                <li class="list-row xl:text-sm lg:text-xs md:text-xs">
+                                                    <span>Area Group : {{ currentMainIndex + 1 }} </span>
+                                                </li>
+
+                                                <li class="p-4 text-xs opacity-60">
+                                                    *Click bounding box to see label details
+                                                </li>
+
+                                                <li v-if="selectedLabel"
+                                                    class="list-row p-4 xl:text-sm lg:text-xs md:text-xs">
+                                                    <div class="flex flex-col gap-2">
+                                                        <span class="font-mono text-xs">Label ID:
+                                                            {{ selectedLabel.id }}</span>
+                                                        <span class="font-mono text-xs">Fail Category:
+                                                            {{ selectedLabel.name }}</span>
+                                                        <span class="font-mono text-xs">Confidence:
+                                                            {{ selectedLabel.score }}</span>
+                                                        <span class="font-mono text-xs">Size:
+                                                            {{ selectedLabel.annotation }}</span>
+                                                        <span class="font-mono text-xs">Coordinate:
+                                                            {{ selectedLabel.bbox }}</span>
+                                                    </div>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="grid grid-cols-3 grid-flow-row md:flex md:flex-wrap gap-2">
+                                            <div v-for="box in currentBoundingBoxes" :key="box.id"
+                                                class="relative xl:w-36 xl:h-36 lg:w-32 lg:h-32 md:w-24 md:h-24 rounded-md overflow-hidden cursor-pointer transition-all duration-200"
+                                                :class="{'ring-2 ring-error ring-offset-2 ring-offset-base-300 scale-105 shadow-xl': selectedLabel?.id === box.id, 'hover:ring-2 hover:ring-error hover:ring-offset-2 hover:ring-offset-base-300 hover:scale-105 hover:shadow-xl': true, 'bg-base-200': true }"
+                                                @mouseenter="onBoxHover(box)" @click="onBoxPreviewClick(box)">
+                                                <div v-if="box.bbox" :style="getCropStyle(box, box.imagePosition)"
+                                                    class="w-full h-full rounded-md"></div>
+
+                                                <div v-else
+                                                    class="w-full h-full flex items-center justify-center text-error text-xs">
+                                                    No Failed Area is available
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    import {
+        reactive
+    } from "vue";
+    import axios from 'axios'
+    type AOIData = {
+        floor: string,
+        line: string,
+        pass: number,
+        fail: number,
+        total: number,
+        yieldRate: number
+    }
+
+    type DetailResult = {
+        pass: number;
+        fail: number;
+        total: number;
+        yieldRate: number;
+    }
+
+    type AoiBoundingBox = {
+        id: number;
+        boxNumber: number;
+        severity: string;
+        detected: boolean;
+        imageUrl: string;
+        label: AoiLabelDefects[];
+    }
+
+    type AoiImage = {
+        id: number;
+        position: string;
+        imageUrl: string;
+        boundingBoxes: AoiBoundingBox[];
+        labelDefects: AoiLabelDefects[];
+        name: string;
+    }
+
+    type AoiLabelDefects = {
+        id: number,
+        name: string,
+        score: number,
+        annotation: string,
+        bbox: [any, any, any, any],
+        boxId: any,
+    }
+
+    type NormalizedLabel = AoiLabelDefects & {
+        id: number;
+        name: string;
+        score: number;
+        annotation: string;
+        bbox: [any, any, any, any];
+        boxId: number;
+        boxNumber: number | null;
+        boxIndex: number;
+    };
+
+
+    type AoiDetails = {
+        id: number;
+        site: string;
+        bu: string;
+        factory: string | null;
+        line: string;
+        floor: string;
+        project: string;
+        cell_Type: string;
+        cell_id: string;
+        work_id: string;
+        sn: string;
+        fail ? : number | null;
+        result: string;
+        currentTime: string;
+        images: AoiImage[];
+    };
+
+    type Shape = {
+        label: string;
+        points: [number, number][];
+    };
+    type Position = {
+        position: string;
+        shapes: Shape[];
+    };
+    export default {
+        data() {
+            return {
+                filters: {
+                    floor: '',
+                    dateFrom: '',
+                    dateUntil: '',
+                    line: '2F17'
+                },
+                selectedShift: '',
+                selectedFloor: '',
+                activeFilters: ['date', 'floor'],
+                availableFilters: [{
+                        label: 'Site',
+                        value: 'site'
+                    },
+                    {
+                        label: 'BU',
+                        value: 'bu'
+                    },
+                    {
+                        label: 'Date Range',
+                        value: 'date'
+                    },
+                    {
+                        label: 'Factory',
+                        value: 'factory'
+                    }
+                ],
+                floors: ['1F', '2F', '3F'],
+                lines: [] as string[],
+                columnsVisibility: {
+                    line: true,
+                    project: true,
+                    total: true,
+                    pass: true,
+                    fail: true,
+                    yieldRate: true,
+                },
+                selectedTab: 'all'  as String,
+                chartOptionsLine: {
+                    backgroundColor: 'transparent',
+                    title: {
+                        text: 'Yield Rate Trend',
+                        top: 10,
+                        textStyle: {
+                            color: '#ffffff',
+                            textShadowColor: 'rgba(255,255,255,0.7)',
+                            textShadowBlur: 10
+                        },
+                        offsetCenter: ['0%', '25%'],
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'line'
+                        },
+                    },
+                    xAxis: {
+                        type: 'category',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10,
+                            fontSize: 10
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#454545'
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '(%)',
+                        nameTextStyle: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10
+                        },
+                        axisLabel: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10,
+                            fontSize: 10
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#454545'
+                            }
+                        },
+                    },
+                    grid: {
+                        left: '5%',
+                        right: '5%',
+                        bottom: '15%',
+                        top: '20%'
+                    },
+                    series: [{
+                        name: 'Yield Rate (%)',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: true,
+                        symbolSize: 10,
+                        itemStyle: {
+                            color: '#00d3bb',
+                            shadowColor: 'rgba(255, 255, 255, 0.7)',
+                            shadowBlur: 10
+                        },
+                        lineStyle: {
+                            color: '#00d3bb'
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            formatter: (params: any) =>
+                                `${(Number(params.value)* 100).toFixed(2)}%`,
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255,255,255,0.7)',
+                            textShadowBlur: 10
+                        },
+                        labelLine: {
+                            show: true
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: '14',
+                                fontWeight: 'bold'
+                            }
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [{
+                                        offset: 0,
+                                        color: '#00d3bb'
+                                    },
+                                    {
+                                        offset: 1,
+                                        color: 'rgba(0, 211, 187, 0)'
+                                    }
+                                ]
+                            }
+                        },
+                        data: [] as[string, number][]
+                    }]
+                },
+                chartOptionsGauge: {
+                    title: {
+                        text: 'Cycle Time (Minutes)',
+                        top: 10,
+                        textStyle: {
+                            color: '#ffffff',
+                            textShadowColor: 'rgba(255,255,255,0.7)',
+                            textShadowBlur: 10
+                        },
+                        offsetCenter: ['0%', '25%'],
+                    },
+                    series: [{
+                        type: 'gauge',
+                        min: 0,
+                        max: 100,
+                        splitNumber: 5,
+                        progress: {
+                            show: true,
+                            width: 18
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                width: 18
+                            }
+                        },
+                        axisTick: {
+                            show: false
+                        },
+                        splitLine: {
+                            length: 10,
+                            lineStyle: {
+                                width: 2,
+                                color: '#999'
+                            }
+                        },
+                        axisLabel: {
+                            distance: 25,
+                            color: '#999',
+                            fontSize: 10,
+                            textStyle: {
+                                color: '#FFFFFF',
+                                textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                                textShadowBlur: 10
+                            }
+                        },
+                        pointer: {
+                            icon: 'path://M2090.36389,615.30999 L2090.36389,615.30999 C2091.48372,615.30999 2092.40383,616.194028 2092.44859,617.312956 L2096.90698,728.755929 C2097.05155,732.369577 2094.2393,735.416212 2090.62566,735.56078 C2090.53845,735.564269 2090.45117,735.566014 2090.36389,735.566014 L2090.36389,735.566014 C2086.74736,735.566014 2083.81557,732.63423 2083.81557,729.017692 C2083.81557,728.930412 2083.81732,728.84314 2083.82081,728.755929 L2088.2792,617.312956 C2088.32396,616.194028 2089.24407,615.30999 2090.36389,615.30999 Z',
+                            length: '45%',
+                            width: 10,
+                            offsetCenter: [0, '5%'],
+                        },
+                        title: {
+                            show: false
+                        },
+                        detail: {
+                            valueAnimation: true,
+                            fontSize: 20,
+                            offsetCenter: [0, '30%'],
+                            formatter: '{value} min',
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10,
+                        },
+                        data: [{
+                            value: 65,
+                            itemStyle: {
+                                color: '#00d3bb'
+                            },
+                            nameTextStyle: {
+                                color: '#FFFFFF',
+                                textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                                textShadowBlur: 10
+                            },
+                        }]
+                    }]
+                },
+                chartOptionsPie: {},
+                count: 0,
+                chartOptionsDynamic: {},
+                chartOptionsDynamicKey: 0,
+                liveInterval: null as number | null,
+                showSummaryCard: true,
+                showDetails: false,
+                allData: [] as AOIData[],
+                detailResult: null as DetailResult | null,
+                selectedLine: '' as string | '',
+                selectedDateRange: "",
+                zoomLevel: 1,
+                isDragging: false,
+                startX: 0,
+                startY: 0,
+                translateX: 0,
+                translateY: 0,
+                showModal: false,
+                modalImage: '',
+                aoi: [] as AoiDetails[],
+                aoiChart: [] as AoiDetails[],
+                currentIndex: 0,
+                currentMainIndex: 0,
+                currentPage: 1,
+                itemsPerPage: 10,
+                showAll: false,
+                maxVisiblePages: 3,
+                pageGroupStart: 1,
+                isMainImageLoading: true,
+                isImageReady: false,
+                imageKey: 0,
+                isBoxLoading: {}  as Record < number,
+                boolean > ,
+                currentLabelsReactive: [] as NormalizedLabel[],
+                showPicture: true,
+                selectedLabel: null as AoiLabelDefects | null,
+                offsetX: 0,
+                offsetY: 0,
+                naturalWidth: 0,
+                naturalHeight: 0,
+                renderedWidth: 0,
+                renderedHeight: 0,
+                fullNaturalWidth: 0,
+                fullNaturalHeight: 0,
+                boxDimensions: reactive < {
+                    [key: number]: {
+                        naturalWidth: number;
+                        naturalHeight: number;
+                        renderedWidth: number;
+                        renderedHeight: number
+                    }
+                } > ({}),
+                currentBoxId: null,
+                position: [
+                    // XB8
+                    {
+                        position: "24005013_Back_cap",
+                        shapes: [{
+                            label: "Back_cap",
+                            points: [
+                                [
+                                    5167.615384615385,
+                                    1024.7692307692305
+                                ],
+                                [
+                                    390.6923076923077,
+                                    3417.076923076923
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "24005013_Front_cap",
+                        shapes: [{
+                            label: "Front_cap",
+                            points: [
+                                [
+                                    259.9230769230769,
+                                    840.1538461538462
+                                ],
+                                [
+                                    5121.461538461538,
+                                    3324.7692307692305
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "24005013_Left_cap",
+                        shapes: [{
+                                label: "airflow",
+                                points: [
+                                    [
+                                        3277.777777777778,
+                                        922.0
+                                    ],
+                                    [
+                                        3833.3333333333335,
+                                        3399.777777777778
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "airflow",
+                                points: [
+                                    [
+                                        2044.4444444444446,
+                                        922.0
+                                    ],
+                                    [
+                                        1311.111111111111,
+                                        3427.5555555555557
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "barcode",
+                                points: [
+                                    [
+                                        2322.222222222222,
+                                        1466.4444444444443
+                                    ],
+                                    [
+                                        2988.888888888889,
+                                        1610.8888888888891
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "airflow",
+                                points: [
+                                    [
+                                        2044.4444444444446,
+                                        922.0
+                                    ],
+                                    [
+                                        3272.222222222222,
+                                        3416.444444444445
+                                    ]
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        position: "24005013_Right_label",
+                        shapes: [{
+                            label: "airflow_top",
+                            points: [
+                                [
+                                    3829.153846153846,
+                                    655.5384615384614
+                                ],
+                                [
+                                    1267.6153846153845,
+                                    3186.3076923076924
+                                ]
+                            ],
+                            group_id: "",
+                            shape_type: "rectangle",
+                            flags: {},
+                            rotation_angle: 0,
+                            masked: false
+                        }]
+                    },
+                    {
+                        position: "24005013_Up_cap",
+                        shapes: [{
+                                label: "Up_cap",
+                                points: [
+                                    [
+                                        359.9230769230769,
+                                        647.8461538461538
+                                    ],
+                                    [
+                                        3052.230769230769,
+                                        3063.2307692307695
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "net",
+                                points: [
+                                    [
+                                        3052.230769230769,
+                                        1270.9230769230767
+                                    ],
+                                    [
+                                        4221.461538461538,
+                                        2409.3846153846152
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "Up_cap",
+                                points: [
+                                    [
+                                        3052.230769230769,
+                                        632.4615384615386
+                                    ],
+                                    [
+                                        4221.461538461538,
+                                        1270.9230769230767
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "Up_cap",
+                                points: [
+                                    [
+                                        3044.5384615384614,
+                                        2417.076923076923
+                                    ],
+                                    [
+                                        4213.7692307692305,
+                                        3063.2307692307695
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "power",
+                                points: [
+                                    [
+                                        4236.846153846153,
+                                        1086.3076923076924
+                                    ],
+                                    [
+                                        4790.692307692308,
+                                        2570.923076923077
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "Up_cap",
+                                points: [
+                                    [
+                                        4236.846153846153,
+                                        617.0769230769229
+                                    ],
+                                    [
+                                        4783.0,
+                                        1086.3076923076924
+                                    ]
+                                ]
+                            },
+
+                            {
+                                label: "Up_cap",
+                                points: [
+                                    [
+                                        4198.384615384615,
+                                        2586.3076923076924
+                                    ],
+                                    [
+                                        4783.0,
+                                        3063.2307692307695
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "stand",
+                                points: [
+                                    [
+                                        4798.384615384615,
+                                        770.9230769230767
+                                    ],
+                                    [
+                                        5029.153846153846,
+                                        2894.0
+                                    ]
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        position: "24005072_Unit",
+                        shapes: [{
+                            label: "Unit",
+                            points: [
+                                [
+                                    313.7692307692302,
+                                    217.07692307692332
+                                ],
+                                [
+                                    5244.538461538461,
+                                    2770.923076923077
+                                ]
+                            ]
+                        }]
+                    },
+                    // 4332
+                    {
+                        position: "23851120_back",
+                        shapes: [{
+                            label: "airflow1",
+                            points: [
+                                [
+                                    603.4090909090909,
+                                    2914.7727272727275
+                                ],
+                                [
+                                    4299.0,
+                                    3647.0
+                                ]
+                            ],
+                        }]
+                    },
+                    {
+                        position: "23851120_front",
+                        shapes: [{
+                            label: "airflow2",
+                            points: [
+                                [
+                                    698.4084880636605,
+                                    2253.580901856764
+                                ],
+                                [
+                                    4309.9473684210525,
+                                    2951.1052631578946
+                                ]
+                            ],
+                        }]
+                    },
+                    {
+                        position: "23851120_up_back_cap1",
+                        shapes: [{
+                            label: "edge_down_1",
+                            points: [
+                                [
+                                    1198.993288590604,
+                                    907.7181208053692
+                                ],
+                                [
+                                    3522.0,
+                                    1504.0
+                                ]
+                            ],
+                        }]
+                    },
+                    {
+                        position: "23851120_up_back_cap2",
+                        shapes: [{
+                            label: "edge_down_2",
+                            points: [
+                                [
+                                    809.9473684210526,
+                                    882.6842105263158
+                                ],
+                                [
+                                    4069.6969696969695,
+                                    1463.6363636363635
+                                ]
+                            ],
+                        }]
+                    },
+                    {
+                        position: "23851120_up_cap1",
+                        shapes: [{
+                                label: "down_1",
+                                points: [
+                                    [
+                                        4115.220949263502,
+                                        3.846153846154266
+                                    ],
+                                    [
+                                        1710.0,
+                                        2816.666666666667
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "down_2",
+                                points: [
+                                    [
+                                        740.0,
+                                        1740.0
+                                    ],
+                                    [
+                                        1704.8543689320388,
+                                        2819.4174757281553
+                                    ]
+                                ]
+                            },
+
+                        ]
+                    },
+                    {
+                        position: "23851120_up_cap2",
+                        shapes: [{
+                                label: "down_3",
+                                points: [
+                                    [
+                                        1697.5384615384614,
+                                        763.230769230769
+                                    ],
+                                    [
+                                        4129.64882943144,
+                                        3649.0
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "down_4",
+                                points: [
+                                    [
+                                        897.7777777777777,
+                                        773.3333333333333
+                                    ],
+                                    [
+                                        1688.888888888889,
+                                        1836.111111111111
+                                    ]
+                                ]
+                            },
+
+                        ]
+                    },
+                    {
+                        position: "23851120_up_cap3",
+                        shapes: [{
+                                label: "down_5",
+                                points: [
+                                    [
+                                        1306.1274509803918,
+                                        687.0735294117644
+                                    ],
+                                    [
+                                        3741.0,
+                                        3650.25
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "down_6",
+                                points: [
+                                    [
+                                        3738.0766292531,
+                                        696.8048618048617
+                                    ],
+                                    [
+                                        4578.787878787879,
+                                        1775.7575757575758
+                                    ]
+                                ]
+                            },
+
+                        ]
+                    },
+                    {
+                        position: "23851120_up_cap4",
+                        shapes: [{
+                                label: "down_7",
+                                points: [
+                                    [
+                                        1251.75,
+                                        0.0
+                                    ],
+                                    [
+                                        3686.25,
+                                        2918.5
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "down_8",
+                                points: [
+                                    [
+                                        3691.666666666667,
+                                        1816.6666666666667
+                                    ],
+                                    [
+                                        4472.340425531915,
+                                        2902.127659574468
+                                    ]
+                                ]
+                            },
+                            {
+                                label: "barcode",
+                                points: [
+                                    [
+                                        3720.142857142857,
+                                        861.5714285714284
+                                    ],
+                                    [
+                                        5141.5714285714275,
+                                        1193.7142857142853
+                                    ]
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        position: "23851120_up_front_cap1",
+                        shapes: [{
+                            label: "edge_down_3",
+                            points: [
+                                [
+                                    1458.3333333333335,
+                                    913.8888888888889
+                                ],
+                                [
+                                    4199.421052631579,
+                                    1545.842105263158
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_front_cap2",
+                        shapes: [{
+                            label: "edge_down_4",
+                            points: [
+                                [
+                                    1271.0076473234367,
+                                    866.6048133153397
+                                ],
+                                [
+                                    3953.846153846154,
+                                    1469.2307692307693
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_left_cap",
+                        shapes: [{
+                            label: "edge_down_5",
+                            points: [
+                                [
+                                    466.24365482233503,
+                                    2300.507614213198
+                                ],
+                                [
+                                    4094.1578947368416,
+                                    2914.2631578947367
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_right_cap",
+                        shapes: [{
+                            label: "edge_down_6",
+                            points: [
+                                [
+                                    1051.0657894736842,
+                                    1545.842105263158
+                                ],
+                                [
+                                    4598.434210526316,
+                                    2161.6315789473683
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_side_cap1",
+                        shapes: [{
+                            label: "edge_down_7",
+                            points: [
+                                [
+                                    2417.6991150442477,
+                                    1912.3893805309733
+                                ],
+                                [
+                                    3467.842105263158,
+                                    2440.578947368421
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_side_cap2",
+                        shapes: [{
+                            label: "edge_down_8",
+                            points: [
+                                [
+                                    1995.8333333333335,
+                                    1191.6666666666667
+                                ],
+                                [
+                                    2988.8947368421054,
+                                    1803.7368421052633
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_side_cap3",
+                        shapes: [{
+                            label: "edge_down_9",
+                            points: [
+                                [
+                                    2257.315789473684,
+                                    1987.9473684210525
+                                ],
+                                [
+                                    3214.6255060728745,
+                                    2512.1457489878544
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "23851120_up_side_cap4",
+                        shapes: [{
+                            label: "edge_down_10",
+                            points: [
+                                [
+                                    2265.2018737111357,
+                                    870.4685093736549
+                                ],
+                                [
+                                    3309.9473684210525,
+                                    1461.6315789473683
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_com_side_cap1",
+                        shapes: [{
+                            label: "panel_1",
+                            points: [
+                                [
+                                    2509.9473684210525,
+                                    287.9473684210526
+                                ],
+                                [
+                                    3457.902097902098,
+                                    3209.3006993006993
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_com_side_cap2",
+                        shapes: [{
+                            label: "panel_2",
+                            points: [
+                                [
+                                    2326.755980861244,
+                                    108.63636363636363
+                                ],
+                                [
+                                    3299.2105263157896,
+                                    3647.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_com_side_cap3",
+                        shapes: [{
+                            label: "panel_3",
+                            points: [
+                                [
+                                    2215.210526315789,
+                                    774.421052631579
+                                ],
+                                [
+                                    3223.5263157894733,
+                                    3649.2631578947367
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap1",
+                        shapes: [{
+                            label: "up_1",
+                            points: [
+                                [
+                                    702.5454545454545,
+                                    383.18181818181813
+                                ],
+                                [
+                                    4178.0,
+                                    3647.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap2",
+                        shapes: [{
+                            label: "up_2",
+                            points: [
+                                [
+                                    1257.3157894736842,
+                                    272.1578947368421
+                                ],
+                                [
+                                    4848.0,
+                                    3647.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap3",
+                        shapes: [{
+                            label: "up_3",
+                            points: [
+                                [
+                                    5098.927419354835,
+                                    3642.798387096773
+                                ],
+                                [
+                                    2583.0,
+                                    0.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap4",
+                        shapes: [{
+                            label: "up_6",
+                            points: [
+                                [
+                                    1055.0714285714284,
+                                    7.571428571428569
+                                ],
+                                [
+                                    4380.071428571428,
+                                    3609.3571428571427
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap5",
+                        shapes: [{
+                            label: "up_4",
+                            points: [
+                                [
+                                    1253.0,
+                                    0.0
+                                ],
+                                [
+                                    4652.0526315789475,
+                                    3545.8421052631575
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_cap6",
+                        shapes: [{
+                            label: "up_5",
+                            points: [
+                                [
+                                    1248.5,
+                                    12.5
+                                ],
+                                [
+                                    4972.4473684210525,
+                                    3432.0263157894738
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_front_cap1",
+                        shapes: [{
+                            label: "edge_up_9",
+                            points: [
+                                [
+                                    2533.642857142857,
+                                    5.785714285714285
+                                ],
+                                [
+                                    3323.0,
+                                    3646.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_front_cap2",
+                        shapes: [{
+                            label: "edge_up_10",
+                            points: [
+                                [
+                                    2405.0714285714284,
+                                    3.9999999999999964
+                                ],
+                                [
+                                    3165.7857142857138,
+                                    3432.5714285714284
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_left_cap2",
+                        shapes: [{
+                            label: "edge_up_1",
+                            points: [
+                                [
+                                    2298.401913875598,
+                                    -0.9904306220098533
+                                ],
+                                [
+                                    3161.9473684210525,
+                                    3647.736842105263
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_left_cap6",
+                        shapes: [{
+                            label: "edge_up_2",
+                            points: [
+                                [
+                                    2176.881118881119,
+                                    1232.2727272727273
+                                ],
+                                [
+                                    3709.9473684210525,
+                                    2109.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_left_side_cap",
+                        shapes: [{
+                            label: "edge_up_3",
+                            points: [
+                                [
+                                    1883.6315789473683,
+                                    1203.7368421052631
+                                ],
+                                [
+                                    2709.8181818181815,
+                                    2926.8181818181815
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_right_cap",
+                        shapes: [{
+                            label: "edge_up_4",
+                            points: [
+                                [
+                                    258.9090909090909,
+                                    1708.6363636363637
+                                ],
+                                [
+                                    4767.8421052631575,
+                                    2666.8947368421054
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_right_cap_new",
+                        shapes: [{
+                            label: "edge_up_5",
+                            points: [
+                                [
+                                    2096.923969213823,
+                                    1221.9741466263206
+                                ],
+                                [
+                                    3657.315789473684,
+                                    2151.1052631578946
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_side_cap",
+                        shapes: [{
+                            label: "edge_up_5",
+                            points: [
+                                [
+                                    2688.0,
+                                    1683.181818181818
+                                ],
+                                [
+                                    4288.894736842105,
+                                    2619.5263157894738
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_side_cap2",
+                        shapes: [{
+                            label: "edge_up_6",
+                            points: [
+                                [
+                                    2533.6428571428564,
+                                    4.000000000000256
+                                ],
+                                [
+                                    3360.0,
+                                    3647.0
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_down_side_cap3",
+                        shapes: [{
+                            label: "edge_up_7",
+                            points: [
+                                [
+                                    2670.5781499202553,
+                                    -0.6419457735250518
+                                ],
+                                [
+                                    3546.684210526316,
+                                    3647.736842105263
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_side_cap1",
+                        shapes: [{
+                            label: "corner_1",
+                            points: [
+                                [
+                                    2255.272727272727,
+                                    861.3636363636363
+                                ],
+                                [
+                                    3322.545454545454,
+                                    2354.090909090909
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_side_cap2",
+                        shapes: [{
+                            label: "corner_2",
+                            points: [
+                                [
+                                    1902.5454545454545,
+                                    1308.6363636363635
+                                ],
+                                [
+                                    2931.6363636363635,
+                                    2699.5454545454545
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_side_cap3",
+                        shapes: [{
+                            label: "corner_3",
+                            points: [
+                                [
+                                    2109.8181818181815,
+                                    1205.0
+                                ],
+                                [
+                                    3097.090909090909,
+                                    2541.363636363636
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_side_cap4",
+                        shapes: [{
+                            label: "corner_4",
+                            points: [
+                                [
+                                    2011.6363636363635,
+                                    1728.6363636363635
+                                ],
+                                [
+                                    3007.9999999999995,
+                                    3144.9999999999995
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_tel_side_cap",
+                        shapes: [{
+                            label: "tel_2",
+                            points: [
+                                [
+                                    2529.59022556391,
+                                    643.9624060150379
+                                ],
+                                [
+                                    3446.494531784005,
+                                    2701.1107313738894
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_tel_side_cap2",
+                        shapes: [{
+                            label: "tel_1",
+                            points: [
+                                [
+                                    2415.2105263157896,
+                                    493.21052631578937
+                                ],
+                                [
+                                    3308.9204545454545,
+                                    2568.693181818182
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_tel_side_cap3",
+                        shapes: [{
+                            label: "coax",
+                            points: [
+                                [
+                                    2317.571428571428,
+                                    2.2142857142857117
+                                ],
+                                [
+                                    3201.499999999999,
+                                    2009.3571428571427
+                                ]
+                            ]
+                        }]
+                    },
+                    {
+                        position: "25145200_tel_side_cap4",
+                        shapes: [{
+                            label: "power",
+                            points: [
+                                [
+                                    3160.517482517482,
+                                    1923.181818181818
+                                ],
+                                [
+                                    2230.153846153846,
+                                    437.30769230769226
+                                ]
+                            ]
+                        }]
+                    },
+                ] as Position[],
+                showWheelHint: false,
+                wheelHintShown: false,
+                showShapeBoxes: false,
+                sortKey: '',
+                sortOrder: 'asc',
+                currentItem: null as AoiDetails | null
+            }
+        },
+        beforeUnmount() {
+            if (this.liveInterval) {
+                clearInterval(this.liveInterval)
+                this.liveInterval = null
+            }
+        },
+        mounted() {
+            const saved = localStorage.getItem('columnsVisibility')
+            if (saved) {
+                this.columnsVisibility = JSON.parse(saved)
+            }
+
+            const today = new Date().toISOString().split('T')[0]
+            this.filters.dateFrom = `${today}T00:00`
+            this.filters.dateUntil = `${today}T23:59`
+
+            this.fetchAllData()
+
+            // this.liveInterval = setInterval(() => {
+            //     if(this.selectedLine){  
+            //         this.pictureData(this.selectedFloor, this.selectedLine)
+            //     }
+            // }, 5000)
+        },
+        methods: {
+            setColumnVisibility(column: keyof typeof this.columnsVisibility, value: boolean) {
+                this.columnsVisibility[column] = value
+                localStorage.setItem('columnsVisibility', JSON.stringify(this.columnsVisibility))
+            },
+            toggleSummary() {
+                this.showSummaryCard = !this.showSummaryCard
+            },
+            handleFailClick(floor: string, line: string) {
+                this.detailData(floor, line);
+                this.pictureData(this.selectedFloor, this.selectedLine)
+                this.showDetails = true;
+                this.selectedTab = 'details';
+                this.$emit('change', true)
+            },
+            async fetchAllData() {
+                const {
+                    floor,
+                    dateFrom,
+                    dateUntil
+                } = this.filters;
+
+                this.selectedFloor = floor || '';
+                const startDate = dateFrom ? `${dateFrom}:00` : ''
+                const endDate = dateUntil ? `${dateUntil}:00` : ''
+
+                const params = new URLSearchParams()
+
+                if (floor) {
+                    params.append('floor', floor);
+                }
+                if (this.selectedShift) {
+                    params.append('shift', this.selectedShift)
+                }
+                if (startDate) params.append('startDate', startDate)
+                if (endDate) params.append('endDate', endDate)
+
+                const cacheBuster = `_=${new Date().getTime()}`;
+                const apiUrl =
+                    `http://10.175.80.201:5001/api/AoiData/yield-summary?${params.toString()}&${cacheBuster}`;
+                try {
+                    const response = await axios.get(apiUrl)
+                    const apiData = response.data || []
+                    // console.log("API RAW DATA:", apiData);
+
+                    this.allData = apiData.map((item: any) => ({
+                        floor: item.floor || this.selectedFloor || '',
+                        line: item.line,
+                        pass: item.pass,
+                        fail: item.fail,
+                        total: item.total,
+                        yieldRate: item.yieldRate
+                    }))
+
+                    this.lines = [...new Set(this.allData.map(item => item.line ?.toUpperCase()))];
+
+                    if (!this.filters.line && this.lines.length > 0) {
+                        this.filters.line = this.lines[0];
+                    }
+
+                    this.generateChartsFromAPI()
+
+                    console.log("success get data from api")
+                } catch (error) {
+                    console.error("Gagal mengambil data summary:", error)
+                    this.allData = []
+                }
+            },
+            async detailData(_floor: string, line: string) {
+                this.selectedLine = line
+                const {
+                    dateFrom,
+                    dateUntil
+                } = this.filters;
+                const startDate = dateFrom ? `${dateFrom}:00` : '';
+                const endDate = dateUntil ? `${dateUntil}:00` : '';
+                this.selectedDateRange = startDate && endDate ? `${startDate} -> ${endDate}` : startDate ||
+                    endDate || "N/A"
+                const params = new URLSearchParams({
+                    line
+                });
+
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                if (this.selectedShift) params.append('shift', this.selectedShift);
+
+                const cacheBuster = `_=${Date.now()}`;
+                const url =
+                    `http://10.175.80.201:5001/api/AoiData/yield-summary?${params.toString()}&${cacheBuster}`;
+
+                try {
+                    const res = await axios.get(url);
+                    const data = res.data || [];
+
+                    const filtered = data.filter((item: {
+                            line: string;
+                        }) =>
+                        item.line ?.toLowerCase().trim() === this.selectedLine.toLowerCase().trim()
+                    );
+
+                    this.detailResult = filtered[0] || null;
+
+                    // console.log("Detail loaded:", this.detailResult);
+                } catch (e) {
+                    console.error("Gagal ambil detail:", e);
+                    this.detailResult = null;
+                }
+            },
+            async pictureData(_floor: string, line: string) {
+                this.selectedLine = (line || "").toLowerCase().trim();
+
+                const {
+                    dateFrom,
+                    dateUntil
+                } = this.filters;
+                const startDate = dateFrom ? `${dateFrom}:00` : "";
+                const endDate = dateUntil ? `${dateUntil}:00` : "";
+                const params = new URLSearchParams({
+                    line
+                });
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                if (this.selectedShift) params.append('shift', this.selectedShift);
+                const cacheBuster = `_=${Date.now()}`;
+                const url = `http://10.175.80.201:5001/api/AoiData/alldetail?${params.toString()}&${cacheBuster}`;
+
+                try {
+                    const res = await axios.get(url);
+
+                    const allData: AoiDetails[] = Array.isArray(res.data) ?
+                        res.data : [res.data];
+
+                    const start = startDate ? new Date(startDate) : null;
+                    const end = endDate ? new Date(endDate) : null;
+
+                    this.aoi = allData.filter(item => {
+                        const itemLine = (item.line || "").toLowerCase().trim();
+                        const matchLine = itemLine === this.selectedLine;
+
+                        const itemTime = new Date(item.currentTime || "");
+                        if (isNaN(itemTime.getTime())) return false;
+
+                        const matchDate =
+                            (!start || itemTime >= start) &&
+                            (!end || itemTime <= end);
+
+                        const result = item.result === 'FAIL';
+
+                        return matchLine && matchDate && result;
+                    })
+
+                    this.aoiChart = allData.filter(item => {
+                        const itemLine = (item.line || "").toLowerCase().trim();
+                        const matchLine = itemLine === this.selectedLine;
+
+                        const itemTime = new Date(item.currentTime || "");
+                        if (isNaN(itemTime.getTime())) return false;
+
+                        const matchDate =
+                            (!start || itemTime >= start) &&
+                            (!end || itemTime <= end);
+
+                        return matchLine && matchDate;
+                    })
+
+                    this.generateDynamicChartFromPictures();
+
+                    // console.log(this.aoi[this.currentIndex] ?.images[this.currentMainIndex]);
+
+                } catch (e) {
+                    console.error("Failed to load picture:", e);
+                }
+            },
+            async onApply() {
+                await this.fetchAllData()
+                if (this.filters.line) {
+                    await this.pictureData(this.filters.floor, this.filters.line)
+                }
+            },
+            prevImage() {
+                if (this.currentMainIndex > 0) {
+                    this.isMainImageLoading = true
+                    this.currentMainIndex--
+                }
+            },
+            nextImage() {
+                if (this.currentMainIndex < this.aoi[this.currentIndex].images.length - 1) {
+                    this.isMainImageLoading = true
+                    this.currentMainIndex++
+                }
+            },
+            handleShiftChange() {
+                if (!this.selectedShift) {
+                    this.fetchAllData();
+                    this.pictureData(this.selectedFloor, this.selectedLine)
+                    return;
+                }
+
+                const baseDateStr = this.filters.dateFrom ? this.filters.dateFrom.split('T')[0] : new Date()
+                    .toISOString()
+                    .split('T')[0];
+
+                let startDate = '';
+                let endDate = '';
+
+                switch (this.selectedShift) {
+                    case 'day':
+                        startDate = `${baseDateStr}T06:50`;
+                        endDate = `${baseDateStr}T14:50`;
+                        break;
+
+                    case 'middle':
+                        startDate = `${baseDateStr}T14:50`;
+                        endDate = `${baseDateStr}T22:50`;
+                        break;
+
+                    case 'night':
+                        const baseDate = new Date(baseDateStr);
+                        const nextDate = new Date(baseDate);
+                        nextDate.setDate(baseDate.getDate() + 1);
+
+                        const nextDateStr = nextDate.toISOString().split('T')[0];
+
+                        startDate = `${baseDateStr}T22:50`;
+                        endDate = `${nextDateStr}T06:50`;
+                        break;
+                }
+
+                this.filters.dateFrom = startDate
+                this.filters.dateUntil = endDate
+
+                this.fetchAllData()
+                this.pictureData(this.selectedFloor, this.selectedLine)
+
+            },
+            resetZoom() {
+                this.zoomLevel = 1;
+                this.translateX = 0
+                this.translateY = 0
+            },
+            startDrag(e: MouseEvent) {
+                if (this.zoomLevel <= 1) return
+
+                this.isDragging = true
+                this.startX = e.clientX - this.translateX
+                this.startY = e.clientY - this.translateY
+            },
+            onDrag(e: MouseEvent) {
+                if (!this.isDragging) return
+                this.translateX = e.clientX - this.startX
+                this.translateY = e.clientY - this.startY
+            },
+            endDrag() {
+                this.isDragging = false
+            },
+            showShape() {
+                this.showShapeBoxes = true
+            },
+            unShowShape() {
+                this.showShapeBoxes = false
+            },
+            onMouseWheel(e: WheelEvent) {
+                const zoomSpeed = 0.1;
+
+                const rect = (this.$refs.imageContainer as HTMLElement).getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const delta = e.deltaY < 0 ? 1 : -1;
+                const newZoom = this.zoomLevel + delta * zoomSpeed;
+
+                if (newZoom < 1) {
+                    this.zoomLevel = 1;
+                    this.translateX = 0;
+                    this.translateY = 0;
+                    return;
+                }
+
+                const zoomFactor = newZoom / this.zoomLevel;
+
+                this.translateX = mouseX - (mouseX - this.translateX) * zoomFactor;
+                this.translateY = mouseY - (mouseY - this.translateY) * zoomFactor;
+
+                this.zoomLevel = newZoom;
+            },
+            showWheelTooltip() {
+                if (this.showWheelHint) return;
+
+                this.showWheelHint = true;
+
+                setTimeout(() => {
+                    this.showWheelHint = false;
+                }, 1500);
+            },
+            onFloorChange() {
+                this.fetchAllData()
+                this.pictureData(this.selectedFloor, this.selectedLine)
+            },
+            generateChartsFromAPI() {
+                if (!this.allData || this.allData.length === 0) return
+
+                const lineChartData: any[] = this.allData.map(item => [
+                    item.line,
+                    item.yieldRate
+                ])
+                const lineChart = this.allData.map(item => item.line)
+                this.chartOptionsLine.series[0].data = lineChartData
+                // @ts-ignore
+                this.chartOptionsLine.series[0].label.formatter = lineChart
+                const pieData = this.allData.map(item => ({
+                    name: item.line,
+                    value: item.total
+                }))
+
+                const colors = this.allData.map((_, i) => {
+                    const palette = ['#00d3bb', '#FF9A00', '#1E90FF', '#FF4F6D', '#9370DB'];
+                    return palette[i % palette.length]
+                })
+
+                this.chartOptionsPie = {
+                    backgroundColor: 'transparent',
+                    title: {
+                        text: 'Total Output',
+                        left: 'left',
+                        top: 10,
+                        textStyle: {
+                            color: '#ffffff'
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'item'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        right: 10,
+                        top: 'center',
+                        textStyle: {
+                            color: '#ffffff'
+                        }
+                    },
+                    series: [{
+                        name: 'Total Output',
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        center: ['40%', '50%'],
+                        label: {
+                            show: true,
+                            formatter: "{b}",
+                            color: "#fff"
+                        },
+                        color: colors,
+                        data: pieData
+                    }]
+                };
+
+            },
+            generateDynamicChartFromPictures() {
+                if (!this.aoiChart || this.aoiChart.length === 0) return
+                const sorted = [...this.aoiChart].sort(
+                    (a, b) =>
+                    new Date(a.currentTime).getTime() -
+                    new Date(b.currentTime).getTime()
+                )
+
+                const categories = sorted.map(item =>
+                    new Date(item.currentTime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    })
+                )
+
+                const passData = sorted.map(item => item.result === 'PASS' ? 1 : 0);
+                const failData = sorted.map(item => item.result === 'FAIL' ? 1 : 0);
+
+                // const maxValue = 1
+
+                const windowSize = 30
+                const totalData = categories.length
+
+                const startIndex = Math.max(0, totalData - windowSize)
+                const visibleCategories = categories.slice(startIndex)
+                const visiblePass = passData.slice(startIndex)
+                const visibleFail = failData.slice(startIndex)
+
+                this.chartOptionsDynamic = {
+                    title: {
+                        text: `Pass & Fail Trend (${this.filters.line || 'All'})`,
+                        textStyle: {
+                            color: '#ffffff',
+                            textShadowColor: 'rgba(255,255,255,0.7)',
+                            textShadowBlur: 10
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: (params: any) => {
+                            const p = params.find((x: any) => x.seriesName === 'Pass')
+                            const f = params.find((x: any) => x.seriesName === 'Fail')
+                            return `
+                                Time: ${params[0].axisValue}<br/>
+                                Pass: ${p?.data}<br/>
+                                Fail: ${f?.data}
+                                `
+                        }
+                    },
+                    xAxis: [{
+                        type: 'category',
+                        data: visibleCategories,
+                        axisLine: {
+                            lineStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10,
+                            fontSize: 10
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#454545'
+                            }
+                        }
+                    }],
+                    yAxis: [{
+                        min: 0,
+                        max: 5,
+                        // interval: 1,
+                        nameTextStyle: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10
+                        },
+                        axisLabel: {
+                            color: '#FFFFFF',
+                            textShadowColor: 'rgba(255, 255, 255, 0.7)',
+                            textShadowBlur: 10,
+                            fontSize: 10
+                        },
+                        type: 'value',
+                        splitLine: {
+                            lineStyle: {
+                                color: '#454545'
+                            }
+                        }
+                    }],
+                    dataZoom: [{
+                            type: 'inside',
+                            start: 0,
+                            end: 100
+                        },
+                        {
+                            type: 'slider',
+                            start: 0,
+                            end: 100,
+                            backgroundColor: 'transparent',
+                            dataBackground: {
+                                areaStyle: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
+                                lineStyle: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            },
+                            fillerColor: 'rgba(255, 255, 255, 0.7)',
+                            borderColor: 'rgba(255,255,255,0.7)',
+                            handleStyle: {
+                                color: 'rgba(255,255,255,0.7)',
+                                borderColor: '#fff',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(255,255,255,0.7)'
+                            },
+                            color: '#FFFFFF'
+                        }
+                    ],
+                    series: [{
+                            name: 'Pass',
+                            type: 'bar',
+                            itemStyle: {
+                                color: '#00d3bb'
+                            },
+                            data: visiblePass
+                        },
+                        {
+                            name: 'Fail',
+                            type: 'line',
+                            smooth: true,
+                            showSymbol: true,
+                            symbolSize: 5,
+                            itemStyle: {
+                                color: '#ff4f6d',
+                                shadowColor: 'rgba(255, 255, 255, 0.7)',
+                                shadowBlur: 10
+                            },
+                            data: visibleFail
+                        }
+                    ]
+                };
+                //   console.log('AOI count:', this.aoi.length)
+
+                this.chartOptionsDynamicKey++
+            },
+            openPictureCard(item: AoiDetails) {
+                this.selectedFloor = item.floor
+                this.selectedLine = item.line
+                this.currentIndex = this.aoi.findIndex(a => a.sn === item.sn)
+                this.currentMainIndex = 0
+                this.pictureData(item.floor, item.line)
+
+            },
+            changePage(page: number) {
+                this.currentPage = page
+                this.showAll = false
+            },
+            sortBy(key: string) {
+                if (this.sortKey === key) {
+                    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortKey = key;
+                    this.sortOrder = 'asc';
+                }
+            },
+            showAllData() {
+                this.showAll = true
+                this.currentPage = 1
+            },
+            prevPageGroup() {
+                this.pageGroupStart = Math.max(1, this.pageGroupStart - this.maxVisiblePages)
+            },
+            nextPageGroup() {
+                this.pageGroupStart = Math.min(
+                    this.totalPages - this.maxVisiblePages + 1,
+                    this.pageGroupStart + this.maxVisiblePages
+                )
+            },
+            resetBoxLoading() {
+                const boxes = this.aoi[this.currentIndex] ?.images[this.currentMainIndex] ?.boundingBoxes || []
+                boxes.forEach(box => {
+                    this.isBoxLoading[box.id] = true
+                })
+            },
+            formatDateTime(dt: string) {
+                const date = new Date(dt)
+                if (isNaN(date.getTime())) return dt
+
+                const pad = (num: number) => num.toString().padStart(2, '0')
+
+                const yyyy = date.getFullYear()
+                const mm = pad(date.getMonth() + 1)
+                const dd = pad(date.getDate())
+
+                const hh = pad(date.getHours())
+                const min = pad(date.getMinutes())
+                const ss = pad(date.getSeconds())
+
+                return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+            },
+            formatDateRange(range: string) {
+                if (!range || range === "N/A") return "N/A"
+
+                const parts = range.split(" -> ")
+                if (parts.length !== 2) return range
+
+                const [start, end] = parts
+                return `${this.formatDateTime(start)} → ${this.formatDateTime(end)} `
+            },
+            updateCurrentLabels() {
+                const img = this.aoi[this.currentIndex] ?.images[this.currentMainIndex];
+                if (!img) {
+                    this.currentLabelsReactive = [];
+                    return;
+                }
+
+                this.currentLabelsReactive = img.labelDefects.map(label => {
+                    const bbox = img.boundingBoxes.find(b => b.id === label.id);
+
+                    const boxNumber = bbox ?.boxNumber ?? null;
+
+                    const shapeIndex =
+                        boxNumber !== null ? boxNumber - 1 : -1;
+
+                    return {
+                        ...label,
+                        boxId: bbox ?.id ?? label.id,
+                        boxNumber,
+                        boxIndex: shapeIndex,
+                    };
+                });
+
+                this.selectedLabel = null;
+            },
+            handleMainImageLoad() {
+                this.$nextTick(() => {
+                    const img = this.$refs.mainImage as HTMLImageElement;
+                    const wrapper = this.$refs.imageContainer as HTMLElement;
+                    if (!img || !wrapper) return;
+                    this.fullNaturalWidth = img.naturalWidth;
+                    this.fullNaturalHeight = img.naturalHeight;
+
+                    this.renderedWidth = img.clientWidth;
+                    this.renderedHeight = img.clientHeight;
+
+
+                    this.offsetX = (wrapper.clientWidth - img.clientWidth);
+                    this.offsetY = (wrapper.clientHeight - img.clientHeight);
+
+                    this.updateCurrentLabels();
+                    this.isMainImageLoading = false;
+                    this.isImageReady = true;
+
+                    if (!this.wheelHintShown) {
+                        this.showWheelTooltip();
+                        this.wheelHintShown = true;
+                    }
+                });
+            },
+            getBBoxStyle(label: {
+                id: number;name: string;score: number;annotation: string;bbox: [any, any, any,
+                    any
+                ];boxId: any;boxNumber: number | null;boxIndex: number;
+            }, imagePosition: string | undefined) {
+                if (!imagePosition || label.boxIndex < 0) return {};
+
+                const pos = this.position.find(p => p.position === imagePosition);
+                if (!pos || !pos.shapes[label.boxIndex]) return {};
+
+                const shape = pos.shapes[label.boxIndex];
+
+                const [sx1, sy1] = shape.points[0];
+                const [sx2, sy2] = shape.points[1];
+
+                const shapeX = Math.min(sx1, sx2);
+                const shapeY = Math.min(sy1, sy2);
+
+                const [lx, ly, lw, lh] = label.bbox;
+
+                const fullScaleX = this.renderedWidth / this.fullNaturalWidth;
+                const fullScaleY = this.renderedHeight / this.fullNaturalHeight;
+
+                const offsetLeft = this.offsetX / 2;
+                const offsetTop = this.offsetY / 2;
+
+                const gx = shapeX + lx;
+                const gy = shapeY + ly;
+
+                return {
+                    left: `${gx * fullScaleX + offsetLeft}px`,
+                    top: `${gy * fullScaleY + offsetTop}px`,
+                    width: `${lw * fullScaleX}px`,
+                    height: `${lh * fullScaleY}px`,
+                };
+            },
+            getShapeStyle(shape: Shape) {
+                const img = this.$refs.mainImage as HTMLImageElement;
+                if (!img || !shape.points || shape.points.length < 2) return {};
+
+                const [x1, y1] = shape.points[0];
+                const [x2, y2] = shape.points[1];
+
+                const fullScaleX = this.renderedWidth / this.fullNaturalWidth;
+                const fullScaleY = this.renderedHeight / this.fullNaturalHeight;
+
+                return {
+                    left: `${Math.min(x1, x2) * fullScaleX}px`,
+                    top: `${Math.min(y1, y2) * fullScaleY}px`,
+                    width: `${Math.abs(x2 - x1) * fullScaleX}px`,
+                    height: `${Math.abs(y2 - y1) * fullScaleY}px`,
+
+                };
+            },
+            getCropStyle(box: {
+                bbox: [number, number, number, number] | null;
+                boxIndex: number;
+                imagePosition: string;
+            }, imagePosition: string) {
+                const img = this.aoi[this.currentIndex].images[this.currentMainIndex];
+                if (!img || !box.bbox) return {};
+
+                const pos = this.position.find(p => p.position === imagePosition);
+                if (!pos || box.boxIndex < 0 || !pos.shapes[box.boxIndex]) return {};
+
+                const shape = pos.shapes[box.boxIndex];
+                const [sx1, sy1] = shape.points[0];
+                const [sx2, sy2] = shape.points[1];
+
+                const shapeX = Math.min(sx1, sx2);
+                const shapeY = Math.min(sy1, sy2);
+
+                const [lx, ly, lw, lh] = box.bbox;
+
+                const fullScaleX = this.renderedWidth / this.fullNaturalWidth;
+                const fullScaleY = this.renderedHeight / this.fullNaturalHeight;
+
+                const offsetLeft = this.offsetX / 2;
+                const offsetTop = this.offsetY / 2;
+
+                const gx = shapeX + lx;
+                const gy = shapeY + ly;
+
+                const rw = lw * fullScaleX;
+                const rh = lh * fullScaleY;
+                const rx = gx * fullScaleX + offsetLeft;
+                const ry = gy * fullScaleY + offsetTop;
+
+                const zoomFactor = Math.max(
+                    100 / rw,
+                    100 / rh
+                );
+
+                const scaledWidth = this.renderedWidth * zoomFactor;
+                const scaledHeight = this.renderedHeight * zoomFactor;
+
+                return {
+                    backgroundImage: `url(${img.imageUrl})`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: `${scaledWidth}px ${scaledHeight}px`,
+                    backgroundPosition: `-${rx * zoomFactor}px -${ry * zoomFactor}px`,
+                };
+            },
+            onBBoxClick(label: AoiLabelDefects) {
+                this.selectedLabel = label;
+            },
+            onLabelHover(label: AoiLabelDefects) {
+                const match = this.currentLabelsReactive.find(l => l.id === label.id);
+                if (match) {
+                    this.selectedLabel = match;
+                }
+            },
+
+            onBoxPreviewClick(box: AoiBoundingBox) {
+                const match = this.currentLabelsReactive.find(l => l.id === box.id);
+                if (match) {
+                    this.selectedLabel = match;
+                }
+                this.modalImage = box.imageUrl;
+            },
+            onBoxHover(box: AoiBoundingBox) {
+                const match = this.currentLabelsReactive.find(l => l.id === box.id);
+                if (match) {
+                    this.selectedLabel = match;
+                }
+            },
+            async downloadImageFile(image: AoiImage) {
+                if (!image || !image.imageUrl) {
+                    console.error("Invalid image object:", image);
+                    return
+                }
+                const url = image.imageUrl
+
+                try {
+                    const response = await axios.get(url, {
+                        responseType: 'blob'
+                    })
+
+                    const blob = new Blob([response.data])
+                    const objectUrl = URL.createObjectURL(blob)
+
+                    const a = document.createElement("a")
+                    a.href = objectUrl
+                    a.download = `image_${image.id ?? "download"}.jpg`
+
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+
+                    URL.revokeObjectURL(objectUrl)
+                } catch (error) {
+                    console.error("Download failed:", error)
+                }
+            },
+            getBadgeColor(val: number | null): string {
+                if (val === null) return '-';
+                const display = `${val.toFixed(2)}%`
+
+                if (val >= 71 && val <= 81) {
+                    return `<div class="badge badge-warning">${display}</div>`
+                } else if (val >= 81 && val <= 92) {
+                    return `<div class="badge badge-accent">${display}</div>`
+                } else if (val >= 92) {
+                    return `<div class="badge badge-success">${display}</div>`
+                } else {
+                    return `<div class="badge badge-error">${display}</div>`
+                }
+            },
+        },
+        computed: {
+            totalPages() {
+                return Math.ceil(this.aoi.length / this.itemsPerPage)
+            },
+            paginatedData(): AoiDetails[] {
+                if (this.showAll) return this.aoi
+                const start = (this.currentPage - 1) * this.itemsPerPage
+                return this.aoi.slice(start, start + this.itemsPerPage)
+            },
+            firstVisiblePage() {
+                return this.pageGroupStart
+            },
+            lastVisiblePage() {
+                return Math.min(this.pageGroupStart + this.maxVisiblePages - 1, this.totalPages)
+            },
+            visiblePages(): number[] {
+                const pages: number[] = []
+                for (let i = this.firstVisiblePage; i <= this.lastVisiblePage; i++) {
+                    pages.push(i)
+                }
+                return pages
+            },
+            currentLabels(): AoiLabelDefects[] {
+                if (!this.aoi.length) return [];
+                const currentImage = this.aoi[this.currentIndex] ?.images[this.currentMainIndex];
+                // console.log("currentLabels for image:", currentImage ?.labelDefects);
+                if (!currentImage) return [];
+                return currentImage.labelDefects || [];
+
+            },
+            imgStyle(): any {
+                return {
+                    transform: `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`,
+                    cursor: this.isDragging ? "grabbing" : this.zoomLevel > 1 ? "grab" : "default",
+                    transition: this.isDragging ? "none" : "transform 0.2s ease"
+                }
+            },
+            worldStyle() {
+                return {
+                    transform: `
+                        translate(${this.translateX}px, ${this.translateY}px)
+                        scale(${this.zoomLevel})
+                    `,
+                    transformOrigin: '0 0'
+                }
+            },
+            currentImage() {
+                return this.aoi[this.currentIndex] ?.images[this.currentMainIndex] || null;
+            },
+            currentBoundingBoxes() {
+                const img = this.aoi[this.currentIndex] ?.images[this.currentMainIndex];
+                if (!img) return [];
+
+                const map: {
+                    [key: number]: NormalizedLabel
+                } = {};
+                img.labelDefects.forEach(l => {
+                    const bbox = img.boundingBoxes.find(b => b.id === l.id);
+                    const boxNumber = bbox ?.boxNumber ?? null;
+                    const boxIndex = boxNumber !== null ? boxNumber - 1 : -1;
+
+                    map[l.id] = {
+                        ...l,
+                        boxId: bbox ?.id ?? l.id,
+                        boxNumber,
+                        boxIndex,
+                    };
+                });
+
+                return img.boundingBoxes.map(b => ({
+                    ...b,
+                    bbox: map[b.id] ?.bbox || null,
+                    boxId: b.id,
+                    name: map[b.id].name,
+                    imagePosition: img.position,
+                    boxIndex: map[b.id].boxIndex
+                }));
+            },
+            sortedData() {
+                if (!this.sortKey) return this.paginatedData;
+
+                return [...this.paginatedData].sort((a, b) => {
+                    const key = this.sortKey as keyof AoiDetails;
+                    let valA = a[key];
+                    let valB = b[key];
+
+                    if (valA == null) valA = '';
+                    if (valB == null) valB = '';
+
+                    if (key === 'currentTime') {
+                        valA = new Date(valA as string).getTime();
+                        valB = new Date(valB as string).getTime();
+                    }
+
+                    if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1;
+                    if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+
+        },
+        watch: {
+            "filters.line"() {
+                this.generateChartsFromAPI();
+                this.generateDynamicChartFromPictures();
+            },
+            currentMainIndex() {
+                this.resetBoxLoading()
+                this.updateCurrentLabels()
+                this.isMainImageLoading = true;
+                this.isImageReady = false;
+            },
+            currentIndex() {
+                this.updateCurrentLabels()
+                this.isMainImageLoading = true
+                this.isImageReady = false
+            },
+            aoi: {
+                handler() {
+                    this.updateCurrentLabels()
+                },
+                deep: true
+            }
+        }
+    }
+</script>
+<style scoped>
+    .summary-card {
+        transition: transform 0.2s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .radio-buttons-container {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+    }
+
+    .radio-button {
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .radio-button__input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .radio-button__label {
+        display: inline-block;
+        padding-left: 30px;
+        margin-bottom: 10px;
+        position: relative;
+        font-size: 12px;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+    }
+
+    .radio-button__custom {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #555;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+    }
+
+    .radio-button__input:checked+.radio-button__label .radio-button__custom {
+        transform: translateY(-50%) scale(0.9);
+        border: 5px solid #00d3bb;
+        color: #00d3bb;
+    }
+
+    .radio-button__input:checked+.radio-button__label {
+        color: #00d3bb;
+    }
+
+    .radio-button__label:hover .radio-button__custom {
+        transform: translateY(-50%) scale(1.2);
+        border-color: #00d3bb;
+        box-shadow: 0 0 10px #00d3bb80;
+    }
+
+    .fade-enter-active,
+    .fade-leave-active {
+        transition: opacity 0.6s ease-in-out;
+    }
+
+    .fade-enter-from,
+    .fade-leave-to {
+        opacity: 0;
+    }
+
+    html[data-theme='light'] .font-semibold {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .strip {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .tabs-box> :is(.tab-active, [aria-selected="true"]):not(.tab-disabled, [disabled]),
+    .tabs-box> :is(input:checked),
+    .tabs-box> :is(label:has(:checked)) {
+        background-color: #15191e;
+        color: #eee;
+    }
+
+
+    html[data-theme='light'] .table {
+        color: white;
+    }
+
+    html[data-theme='light'] tr {
+        border-color: oklch(25.33% 0.016 252.42);
+    }
+
+    html[data-theme='light'] th {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .stat-title {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .stat-value {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .select {
+        background-color: #eee;
+    }
+
+    html[data-theme='light'] .input {
+        background-color: #eee;
+    }
+
+    html[data-theme='light'] .font-semibold {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .font-bold {
+        color: #eee;
+    }
+
+
+    html[data-theme='light'] .collapse-title {
+        color: #15191e;
+    }
+
+    html[data-theme='light'] .label-text {
+        color: #15191e;
+    }
+
+    html[data-theme='light'] .radio {
+        color: #15191e;
+    }
+
+    html[data-theme='light'] .strip {
+        color: #eee;
+    }
+
+    html[data-theme='light'] .table-info {
+        background-color: oklch(25.33% 0.016 252.42);
+
+
+    }
+
+    @keyframes zoomIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .animate-zoomIn {
+        animation: zoomIn .3s ease-out;
+    }
+
+    .btn:is(:disabled, [disabled], .btn-disabled):not(.btn-link, .btn-ghost) {
+        background-color:
+            color-mix(in oklab, #fff 10%, transparent);
+        color: color-mix(in oklab, #00d3bb 10%, transparent);
+        ;
+        box-shadow: none;
+    }
+
+    .pagination {
+        display: flex;
+        gap: 8px;
+    }
+
+    .tab-group input {
+        appearance: none;
+    }
+
+    .tab-group label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        /* circle */
+        /* border: 1px solid #cccccc; */
+        background-color: transparent;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+    }
+
+    .tab-group label:hover {
+        border-color: #00d3bb;
+        color: #00d3bb;
+    }
+
+    .tab-group label.active,
+    .tab-group input:checked+label {
+        background-color: #00d3bb;
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+    .tab-group label.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+
+    .bbox-item {
+        border: 1.5px solid #ff4444;
+        /* background-color: rgba(255, 0, 0, 0.15); */
+        cursor: pointer;
+        transition: 0.15s;
+    }
+
+    .bbox-item:hover {
+        background-color: rgba(255, 0, 0, 0.25);
+        transform: scale(1.3);
+    }
+
+
+    .bbox-shape {
+        border: 1.5px solid #ff4444;
+        /* background-color: rgba(255, 0, 0, 0.15); */
+        cursor: pointer;
+        transition: 0.15s;
+    }
+
+    .bbox-shape:hover {
+        background-color: rgba(255, 0, 0, 0.25);
+
+    }
+
+    .bbox-tag {
+        position: absolute;
+        top: -18px;
+        left: 0;
+        background: #ff4444;
+        color: white;
+        padding: 1px 4px;
+        font-size: 10px;
+        border-radius: 3px;
+    }
+
+    @keyframes fadeAnim {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -10px);
+        }
+
+        20% {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        80% {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -10px);
+        }
+    }
+
+    .animate-fade {
+        animation: fadeAnim 2.5s ease forwards;
+    }
+</style>

@@ -1,0 +1,559 @@
+@import '@/assets/styles/fonts.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* 
+'xs': '320px',    // Extra small
+'sm': '768px',    // Small
+'md': '1024px',   // Medium
+'lg': '1240px',   // Large
+'xl' : '1700px', // Desktop
+
+*/
+/* Responsive Control */
+
+@layer components {
+  .test-box {
+    background-color: black;
+  }
+
+  .bg-glasses {
+    background-color: rgba(255, 255, 255, 0.074);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(20px);
+    box-shadow: 0px 0px 5px 1px var(--glow-color),
+      0 0 2em 1px var(--glow-spread-color);
+    --glow-color: rgb(176, 255, 248);
+    --glow-spread-color: rgba(123, 255, 237, 0.781);
+    --enhanced-glow-color: rgb(206, 255, 251);
+  }
+
+  @screen xs {
+    .test-box {
+      background-color: white;
+    }
+
+    .icon-card {
+      width: 50px;
+      height: 50px;
+    }
+
+    .label {
+      font-size: 1rem !important;
+    }
+
+    .wrap {
+      --w-label: 60px !important;
+    }
+
+    .label span {
+      font-size: 0.7rem;
+    }
+
+    .app label {
+      font-size: 0.8rem !important;
+    }
+
+    .slider {
+      --gap: 25rem !important;
+    }
+
+    .app {
+      width: 16rem;
+      height: 18rem;
+    }
+
+    .switch {
+      --_label-padding: 0.5rem 1rem !important;
+    }
+
+    .date-label {
+      font-size: 10px;
+    }
+  }
+
+  @screen sm {
+    .test-box {
+      background-color: green;
+    }
+
+    .icon-card {
+      width: 50px;
+      height: 50px;
+    }
+
+    .label {
+      font-size: 1rem !important;
+    }
+
+    .wrap {
+      --w-label: 60px !important;
+    }
+
+    .label span {
+      font-size: 0.7rem;
+    }
+
+    .app label {
+      font-size: 0.8rem !important;
+    }
+
+    .slider {
+      --gap: 25rem !important;
+    }
+
+    .app {
+      width: 10rem !important;
+      height: 18rem;
+    }
+
+    .switch {
+      --_label-padding: 0.5rem 1rem !important;
+    }
+
+    .date-label {
+      font-size: 10px;
+    }
+
+    .map_agv {
+      width: 500px !important;
+      height: 300px !important;
+    }
+  }
+
+  @screen md {
+    .test-box {
+      background-color: blue;
+    }
+
+    .icon-card {
+      width: 30px;
+      height: 30px;
+    }
+
+    .label {
+      font-size: 1rem !important;
+    }
+
+    .wrap {
+      --w-label: 100px !important;
+    }
+
+    .label span {
+      font-size: 0.7rem;
+    }
+
+    .app label {
+      font-size: 0.8rem !important;
+    }
+
+    .slider {
+      --gap: 45rem !important;
+    }
+
+    .app {
+      width: 10rem !important;
+      height: 18rem;
+    }
+
+    #checklist {
+      padding: 10px !important;
+      width: 150px !important;
+      gap: 10px !important;
+      grid-template-columns: 40px auto !important;
+    }
+
+    #checklist label {
+      margin-right: 5px !important;
+      font-size: 8px !important;
+    }
+
+    .switch {
+      --_label-padding: 0.5rem 1rem !important;
+    }
+
+    .date-label {
+      font-size: 12px;
+    }
+
+    .map_agv {
+      width: 500px !important;
+      height: 300px !important;
+    }
+
+    .container .box {
+      width: 10.875em !important;
+      height: 5.875em !important;
+      padding: 1.1rem !important;
+    }
+
+    .container-week .box {
+      width: 20.875em !important;
+      height: 20.875em !important;
+    }
+
+    .cube {
+      width: 40px !important;
+    }
+
+    .face {
+      width: 40px !important;
+      height: 40px !important;
+    }
+
+    .cube-front,
+    .cube-back {
+      transform: translateX(40px) translateZ(-20px) !important;
+      animation: none;
+    }
+
+    .cube-top,
+    .cube-bottom {
+      transform: translateZ(20px) !important;
+      animation: none;
+    }
+
+    .cube-left,
+    .cube-right {
+      transform: translateX(40px) translateZ(-20px) !important;
+      animation: none;
+    }
+
+    .front {
+      transform: rotateY(0deg) translateZ(20px) !important;
+    }
+
+    .back {
+      transform: rotateY(180deg) translateZ(20px) !important;
+    }
+
+    .left {
+      transform: rotateY(-90deg) translateZ(20px) !important;
+    }
+
+    .right {
+      transform: rotateY(90deg) translateZ(20px) !important;
+    }
+
+    .top {
+      transform: rotateX(90deg) translateZ(20px) !important;
+    }
+
+    .bottom {
+      transform: rotateX(-90deg) translateZ(20px) !important;
+    }
+
+    .file-upload-label {
+      padding: 10px 40px !important;
+    }
+
+    .radio-container {
+      font-size: 10px !important;
+    }
+
+    .btn-home {
+       width: 180px !important;
+       height: 30px !important;
+    }
+    
+    .btn-home .clone>*,
+    .btn-home .text>* {
+      font-size: 1rem !important;
+    }
+    
+    .radio-container label {
+      padding : 10px !important;
+    }
+  
+  }
+
+  @screen lg {
+    .test-box {
+      background-color: yellow;
+    }
+
+    .icon-card {
+      width: 40px;
+      height: 40px;
+    }
+
+    .label {
+      font-size: 1.2rem !important;
+    }
+
+    .wrap {
+      --w-label: 100px !important;
+    }
+
+    .label span {
+      font-size: 0.7rem;
+    }
+
+    .app label {
+      font-size: 0.8rem !important;
+    }
+
+    .slider {
+      --gap: 25rem !important;
+    }
+
+    .app {
+      width: 16rem !important;
+      height: 18rem !important;
+    }
+
+    #checklist {
+      padding: 20px !important;
+      width: 200px !important;
+      display: grid !important;
+      grid-template-columns: 60px auto !important;
+      gap: 10px !important;
+    }
+
+    #checklist label {
+      margin-right: 10px !important;
+      font-size: 10px !important;
+    }
+
+    .switch {
+      --_label-padding: 0.5rem 1rem !important;
+    }
+
+    .date-label {
+      font-size: 12px;
+    }
+
+    .map_agv {
+      width: 800px !important;
+      height: 600px !important;
+    }
+
+    .container .box {
+      width: 13.875em !important;
+      height: 7.875em !important;
+      padding: 2rem !important;
+    }
+
+    .container-week .box {
+      width: 25.875em !important;
+      height: 20.875em !important;
+    }
+
+    .cube {
+      width: 80px !important;
+    }
+
+    .face {
+      width: 80px !important;
+      height: 80px !important;
+    }
+
+    .cube-front,
+    .cube-back {
+      transform: translateX(80px) translateZ(-40px) !important;
+      animation: none !important;
+    }
+
+    .cube-top,
+    .cube-bottom {
+      transform: translateZ(40px) !important;
+      animation: none !important;
+    }
+
+    .cube-left,
+    .cube-right {
+      transform: translateX(80px) translateZ(-40px) !important;
+      animation: none !important;
+    }
+
+    .front {
+      transform: rotateY(0deg) translateZ(40px) translateX(-5px) !important;
+    }
+
+    .back {
+      transform: rotateY(180deg) translateZ(40px) translateX(5px) !important;
+    }
+
+    .left {
+      transform: rotateY(-90deg) translateZ(45px) !important;
+    }
+
+    .right {
+      transform: rotateY(90deg) translateZ(35px) !important;
+    }
+
+    .top {
+      transform: rotateX(90deg) translateZ(40px) translateX(-5px) !important;
+    }
+
+    .bottom {
+      transform: rotateX(-90deg) translateZ(40px) translateX(-5px) !important;
+    }
+
+    .file-upload-label {
+      padding: 30px 70px !important;
+    }
+
+    .radio-container {
+      font-size: 13px !important;
+    }
+
+     .btn-home {
+       width: 200px !important;
+       height: 60px !important;
+    }
+
+    .btn-home .clone>*,
+    .btn-home .text>* {
+      font-size: 1.1rem !important;
+    }
+
+    .radio-container label {
+      padding : 10px !important;
+    }
+
+    .glider{
+      height : calc(100% / 8)!important;
+    }
+
+  }
+
+  @screen xl {
+    .test-box {
+      background-color: purple;
+    }
+
+    .icon-card {
+      width: 70px;
+      height: 70px;
+    }
+
+    .label {
+      font-size: 1.2rem !important;
+    }
+
+    .wrap {
+      --w-label: 100px !important;
+    }
+
+    .label span {
+      font-size: 0.7rem;
+    }
+
+    .app label {
+      font-size: 0.8rem !important;
+    }
+
+    .slider {
+      --gap: 5rem !important;
+    }
+
+    .app {
+      width: 16rem !important;
+      height: 18rem !important;
+    }
+
+    .switch {
+      --_label-padding: 1rem 1rem !important;
+    }
+
+    .date-label {
+      font-size: 15px;
+    }
+
+    .map_agv {
+      width: 1000px !important;
+      height: 800px !important;
+    }
+
+    .container .box {
+      width: 25.875em !important;
+      height: 10.50em !important;
+      padding: 2rem !important;
+    }
+
+    .container-week .box {
+      width: 25.875em !important;
+      height: 20.875em !important;
+    }
+
+    .cube {
+      width: 140px !important;
+    }
+
+    .face {
+      width: 140px !important;
+      height: 140px !important;
+    }
+
+    .cube-front,
+    .cube-back {
+      transform: translateX(140px) translateZ(-80px) !important;
+      animation: none !important;
+    }
+
+    .cube-top,
+    .cube-bottom {
+      transform: translateZ(60px) !important;
+      animation: none !important;
+    }
+
+    .cube-left,
+    .cube-right {
+      transform: translateX(140px) translateZ(-80px) !important;
+      animation: none !important;
+    }
+
+    .front {
+      transform: rotateY(0deg) translateZ(80px) !important;
+    }
+
+    .back {
+      transform: rotateY(180deg) translateZ(60px) !important;
+    }
+
+    .left {
+      transform: rotateY(-90deg) translateZ(70px) translateX(10px) !important;
+    }
+
+    .right {
+      transform: rotateY(90deg) translateZ(70px) translateX(-10px) !important;
+    }
+
+    .top {
+      transform: rotateX(90deg) translateZ(70px) translateY(10px) !important;
+    }
+
+    .bottom {
+      transform: rotateX(-90deg) translateZ(70px) translateY(-10px) !important;
+    }
+
+    .file-upload-label {
+      padding: 30px 70px !important;
+    }
+
+    .radio-container {
+      font-size: 13px !important;
+    }
+
+    .btn-home {
+       width: 200px !important;
+       height: 60px !important;
+    }
+
+    .btn-home .clone>*,
+    .btn-home .text>* {
+      font-size: 1.1rem !important;
+    }
+
+    .radio-container label {
+      padding : 1rem !important;
+    }
+
+    .glider{
+      height : calc(100% / 8)!important;
+    }
+  }
+}
