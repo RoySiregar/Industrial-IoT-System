@@ -13,6 +13,7 @@ This project demonstrates the end-to-end flow of industrial data: from data gene
 ### System Architecture
 The system is built with a modular architecture that separates responsibilities between simulation, business logic, and data presentation:
 1. Backend Service (ProductionReportAPI)
+
 Acts as the central bridge (API Gateway) integrating data from various database sources.
 * **Multi-Database Architecture:** Separates data domains for better integrity:
 * **OEE Engine:** Automatically calculates **Availability**, **Performance**, and **Quality** metrics.
@@ -22,6 +23,7 @@ A reactive web-based user interface for operators and management.
 * Real-time update support (via SignalR/Polling).
 * Report export features (PDF/Excel) and multi-language support (i18n).
 3. IoT Simulator
+![Console Log](screenshots/running_log.PNG)
 A console application acting as a "Robot" agent on the production floor.
 * Uses the **MQTT** protocol for data transmission.
 * Simulates real-world scenarios: variable **Cycle Time**, defect probability (30% fail vs 70% pass), and machine error codes.
