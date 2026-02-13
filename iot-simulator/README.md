@@ -24,11 +24,11 @@ It operates using a **Dual-Agent Architecture** running asynchronously:
 
 ### 1. Real-time Data Stream (Console App)
 The application handles asynchronous tasks: The **Simulator (Robot)** sends data (Cyan/Red logs), while the **Subscriber** simultaneously processes and saves it (Green logs).
-![Console Log](screenshots/running_log.png)
+![Console Log](screenshots/running_log.PNG)
 
 ### 2. Database Storage (HeidiSQL)
 Parsed production data stored in MySQL. Notice the extracted **Cycle Time (ct_time)** and **Result** columns derived from the raw MQTT message.
-![Database Result](screenshots/database_result.png)
+![Database Result](screenshots/database_result.PNG)
 
 ---
 
